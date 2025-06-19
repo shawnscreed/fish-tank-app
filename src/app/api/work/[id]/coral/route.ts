@@ -22,7 +22,7 @@ export async function GET(
 
     return NextResponse.json(result.rows);
   } catch (err: any) {
-    console.error("GET /api/work/[id]/corals error:", err);
+    console.error("GET /api/work/[id]/coral error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

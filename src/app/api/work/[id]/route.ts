@@ -68,17 +68,17 @@ export async function POST(
       );
     } else if (type === "plant") {
       await pool.query(
-        'INSERT INTO "PlantTank" (tank_id, plant_id) VALUES ($1, $2)',
+        'INSERT INTO "TankPlant" (tank_id, plant_id) VALUES ($1, $2)',
         [tankId, entryId]
       );
-    } else if (type === "corals") {
+    } else if (type === "coral") {
       await pool.query(
-        'INSERT INTO "CoralTank" (tank_id, coral_id) VALUES ($1, $2)',
+        'INSERT INTO "TankCoral" (tank_id, coral_id) VALUES ($1, $2)',
         [tankId, entryId]
       );
     } else if (type === "inverts") {
       await pool.query(
-        'INSERT INTO "InvertTank" (tank_id, invert_id) VALUES ($1, $2)',
+        'INSERT INTO "TankInvert" (tank_id, invert_id) VALUES ($1, $2)',
         [tankId, entryId]
       );
     } else {

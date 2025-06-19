@@ -22,13 +22,14 @@ export async function GET(
 
 // PUT /api/coral/[id]
 export async function PUT(
-  req: NextRequest,
+  req: Request,
   context: { params: { id: string } }
 ) {
+  const { params } = context;
+  const { id } = params;
   const body = await req.json();
-  const { id } = context.params;
 
-  const allowedFields = [
+    const allowedFields = [
     "name", "water_type", "ph_low", "ph_high",
     "hardness_low", "hardness_high", "temp_low", "temp_high",
     "in_use", "aggressiveness"
