@@ -88,6 +88,16 @@ export default function WorkDetailPage() {
     return <ClientLayout><div className="p-6">Loading...</div></ClientLayout>;
   }
 
+  const loadAssigned = async () => {
+  const res = await fetch(`/api/work/${id}/assigned`);
+  const data = await res.json();
+
+  setAssignedFish(data.fish);
+  setAssignedInverts(data.inverts);
+  setAssignedPlant(data.plants);
+  setAssignedCorals(data.corals);
+};
+
   return (
     <ClientLayout>
       <div className="p-6">
@@ -130,65 +140,83 @@ export default function WorkDetailPage() {
             Assign
           </button>
         </div>
+</div>
+{/* Table View */}
+<div className="mt-6 space-y-8">
+  {[
+    { type: "fish", label: "Fish", entries: assignedFish },
+    { type: "inverts", label: "Inverts", entries: assignedInverts },
+    { type: "plant", label: "Plants", entries: assignedPlant },
+    { type: "corals", label: "Corals", entries: assignedCorals },
+  ].map(({ type, label, entries }) => (
+    <div key={type}>
+      <h3 className="font-semibold mb-2">Assigned {label}</h3>
 
-        {/* Table View */}
-        <div className="mt-6">
-          <h3 className="font-semibold mb-2">Assigned {selectedType}</h3>
+      {entries.length === 0 ? (
+        <p>No {label.toLowerCase()} assigned yet.</p>
+      ) : (
+        <table className="table-auto border-collapse w-full text-sm">
+          <thead>
+            <tr>
+              <th className="border px-2 py-1">Name</th>
+              {type === "plant" ? (
+                <>
+                  <th className="border px-2 py-1">Light Level</th>
+                  <th className="border px-2 py-1">CO₂</th>
+                  <th className="border px-2 py-1">Temp Range</th>
+                </>
+              ) : (
+                <>
+                  <th className="border px-2 py-1">pH</th>
+                  <th className="border px-2 py-1">Hardness</th>
+                  <th className="border px-2 py-1">Temp</th>
+                  <th className="border px-2 py-1">Aggression</th>
+                </>
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map((entry, index) => (
+              <tr key={`${type}-${entry.id}-${index}`}>
+                <td className="border px-2 py-1">{entry.name}</td>
 
-          {(() => {
-            const entriesToRender =
-              selectedType === "inverts"
-                ? assignedInverts
-                : selectedType === "plant"
-                ? assignedPlant
-                : selectedType === "corals"
-                ? assignedCorals
-                : assignedFish;
+                {type === "plant" ? (
+                  <>
+                    {(() => {
+  const plant = entry as Plant;
+  return (
+    <>
+      <td className="border px-2 py-1">{plant.light_level || "N/A"}</td>
+      <td className="border px-2 py-1">{plant.co2_required ? "Yes" : "No"}</td>
+      <td className="border px-2 py-1">{plant.temperature_range || "?"}</td>
+    </>
+  );
+})()}
 
-            return entriesToRender.length === 0 ? (
-              <p>No {selectedType} assigned yet.</p>
-            ) : (
-              <table className="table-auto border-collapse w-full text-sm">
-                <thead>
-                  <tr>
-                    <th className="border px-2 py-1">Name</th>
-                    {selectedType === "plant" ? (
-                      <>
-                        <th className="border px-2 py-1">Light Level</th>
-                        <th className="border px-2 py-1">CO₂</th>
-                        <th className="border px-2 py-1">Temp Range</th>
-                      </>
-                    ) : (
-                      <>
-                        <th className="border px-2 py-1">pH</th>
-                        <th className="border px-2 py-1">Hardness</th>
-                        <th className="border px-2 py-1">Temp</th>
-                        <th className="border px-2 py-1">Aggression</th>
-                      </>
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {entriesToRender.map((entry, index) => (
-                    <tr key={`${selectedType}-${entry.id}-${index}`}>
-                      <td className="border px-2 py-1">{entry.name}</td>
-                      {selectedType !== "plant" && (
-  <>
-    <td className="border px-2 py-1">{(entry as Entry).ph_low ?? "?"}–{(entry as Entry).ph_high ?? "?"}</td>
-    <td className="border px-2 py-1">{(entry as Entry).hardness_low ?? "?"}–{(entry as Entry).hardness_high ?? "?"}</td>
-    <td className="border px-2 py-1">{(entry as Entry).temp_low ?? "?"}–{(entry as Entry).temp_high ?? "?"}</td>
-    <td className="border px-2 py-1">{(entry as Entry).aggressiveness || "N/A"}</td>
-  </>
-)}
+                  </>
+                ) : (
+                  <>
+                    <td className="border px-2 py-1">
+                      {(entry as Entry).ph_low ?? "?"}–{(entry as Entry).ph_high ?? "?"}
+                    </td>
+                    <td className="border px-2 py-1">
+                      {(entry as Entry).hardness_low ?? "?"}–{(entry as Entry).hardness_high ?? "?"}
+                    </td>
+                    <td className="border px-2 py-1">
+                      {(entry as Entry).temp_low ?? "?"}–{(entry as Entry).temp_high ?? "?"}
+                    </td>
+                    <td className="border px-2 py-1">{(entry as Entry).aggressiveness || "N/A"}</td>
+                  </>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  ))}
+</div>
 
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            );
-          })()}
-        </div>
-      </div>
     </ClientLayout>
   );
 }
