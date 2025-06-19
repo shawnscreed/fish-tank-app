@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import ClientLayout from "@/app/ClientLayout";
 
-// ✅ Updated Plant type
 interface Plant {
   id: number;
   name: string;
@@ -12,7 +11,6 @@ interface Plant {
   temperature_range?: string;
 }
 
-// ✅ Reused for fish, corals, inverts
 interface Entry {
   id: number;
   name: string;
@@ -42,61 +40,59 @@ export default function WorkDetailPage() {
   const [tank, setTank] = useState<any>(null);
   const [selectedType, setSelectedType] = useState("fish");
   const [entryList, setEntryList] = useState<any[]>([]);
-  const [assignedEntries, setAssignedEntries] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState("");
 
-  // Category-specific states (for future use if needed)
   const [assignedFish, setAssignedFish] = useState<Fish[]>([]);
   const [assignedPlant, setAssignedPlant] = useState<Plant[]>([]);
   const [assignedInverts, setAssignedInverts] = useState<Invert[]>([]);
   const [assignedCorals, setAssignedCorals] = useState<Coral[]>([]);
 
-  useEffect(() => {
-    fetch(`/api/work/${id}`).then(res => res.json()).then(setTank);
-    fetch(`/api/${selectedType}`).then(res => res.json()).then(setEntryList);
-    fetch(`/api/work/${id}/${selectedType}`).then(res => res.json()).then(setAssignedEntries);
+  const loadAssigned = async () => {
+    const [fish, plant, inverts, corals] = await Promise.all([
+      fetch(`/api/work/${id}/fish`).then(res => res.json()),
+      fetch(`/api/work/${id}/plant`).then(res => res.json()),
+      fetch(`/api/work/${id}/inverts`).then(res => res.json()),
+      fetch(`/api/work/${id}/corals`).then(res => res.json()),
+    ]);
 
-    fetch(`/api/work/${id}/fish`).then(res => res.json()).then(setAssignedFish);
-    fetch(`/api/work/${id}/plant`).then(res => res.json()).then(setAssignedPlant);
-    fetch(`/api/work/${id}/inverts`).then(res => res.json()).then(setAssignedInverts);
-    fetch(`/api/work/${id}/corals`).then(res => res.json()).then(setAssignedCorals);
-  }, [id, selectedType]);
+    setAssignedFish(fish);
+    setAssignedPlant(plant);
+    setAssignedInverts(inverts);
+    setAssignedCorals(corals);
+  };
 
   const assignItem = async () => {
-    const res = await fetch(`/api/tank${selectedType}`, {
+    if (!selectedId) return;
+
+    const res = await fetch(`/api/work/${id}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        tank_id: id,
-        plant_id: selectedId, // ✅ must match what API expects
+        type: selectedType,
+        entryId: selectedId,
       }),
+      headers: {
+        "Content-Type": "application/json",
+      },
     });
 
     if (res.ok) {
       alert(`${selectedType} added to tank!`);
       setSelectedId("");
-      fetch(`/api/work/${id}/${selectedType}`)
-        .then(res => res.json())
-        .then(data => Array.isArray(data) ? setAssignedEntries(data) : setAssignedEntries([]))
-        .catch(() => setAssignedEntries([]));
+      await loadAssigned();
     } else {
       alert(`Failed to assign ${selectedType}`);
     }
   };
 
+  useEffect(() => {
+    fetch(`/api/work/${id}`).then(res => res.json()).then(setTank);
+    fetch(`/api/${selectedType}`).then(res => res.json()).then(setEntryList);
+    loadAssigned();
+  }, [id, selectedType]);
+
   if (!tank) {
     return <ClientLayout><div className="p-6">Loading...</div></ClientLayout>;
   }
-
-  const loadAssigned = async () => {
-  const res = await fetch(`/api/work/${id}/assigned`);
-  const data = await res.json();
-
-  setAssignedFish(data.fish);
-  setAssignedInverts(data.inverts);
-  setAssignedPlant(data.plants);
-  setAssignedCorals(data.corals);
-};
 
   return (
     <ClientLayout>
@@ -105,7 +101,6 @@ export default function WorkDetailPage() {
         <p><strong>Water Type:</strong> {tank.water_type}</p>
         <p><strong>Gallons:</strong> {tank.gallons}</p>
 
-        {/* Type Selector */}
         <div className="my-4">
           <label className="font-semibold">Select Type to Assign: </label>
           <select
@@ -120,7 +115,6 @@ export default function WorkDetailPage() {
           </select>
         </div>
 
-        {/* Assign item */}
         <div className="bg-gray-100 border rounded p-4 shadow">
           <h2 className="font-semibold mb-2">Add {selectedType}</h2>
           <select
@@ -140,83 +134,79 @@ export default function WorkDetailPage() {
             Assign
           </button>
         </div>
-</div>
-{/* Table View */}
-<div className="mt-6 space-y-8">
-  {[
-    { type: "fish", label: "Fish", entries: assignedFish },
-    { type: "inverts", label: "Inverts", entries: assignedInverts },
-    { type: "plant", label: "Plants", entries: assignedPlant },
-    { type: "corals", label: "Corals", entries: assignedCorals },
-  ].map(({ type, label, entries }) => (
-    <div key={type}>
-      <h3 className="font-semibold mb-2">Assigned {label}</h3>
 
-      {entries.length === 0 ? (
-        <p>No {label.toLowerCase()} assigned yet.</p>
-      ) : (
-        <table className="table-auto border-collapse w-full text-sm">
-          <thead>
-            <tr>
-              <th className="border px-2 py-1">Name</th>
-              {type === "plant" ? (
-                <>
-                  <th className="border px-2 py-1">Light Level</th>
-                  <th className="border px-2 py-1">CO₂</th>
-                  <th className="border px-2 py-1">Temp Range</th>
-                </>
+        <div className="mt-6 space-y-8">
+          {[
+            { type: "fish", label: "Fish", entries: assignedFish },
+            { type: "inverts", label: "Inverts", entries: assignedInverts },
+            { type: "plant", label: "Plants", entries: assignedPlant },
+            { type: "corals", label: "Corals", entries: assignedCorals },
+          ].map(({ type, label, entries }) => (
+            <div key={type}>
+              <h3 className="font-semibold mb-2">Assigned {label}</h3>
+
+              {entries.length === 0 ? (
+                <p>No {label.toLowerCase()} assigned yet.</p>
               ) : (
-                <>
-                  <th className="border px-2 py-1">pH</th>
-                  <th className="border px-2 py-1">Hardness</th>
-                  <th className="border px-2 py-1">Temp</th>
-                  <th className="border px-2 py-1">Aggression</th>
-                </>
+                <table className="table-auto border-collapse w-full text-sm">
+                  <thead>
+                    <tr>
+                      <th className="border px-2 py-1">Name</th>
+                      {type === "plant" ? (
+                        <>
+                          <th className="border px-2 py-1">Light Level</th>
+                          <th className="border px-2 py-1">CO₂</th>
+                          <th className="border px-2 py-1">Temp Range</th>
+                        </>
+                      ) : (
+                        <>
+                          <th className="border px-2 py-1">pH</th>
+                          <th className="border px-2 py-1">Hardness</th>
+                          <th className="border px-2 py-1">Temp</th>
+                          <th className="border px-2 py-1">Aggression</th>
+                        </>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {entries.map((entry, index) => (
+                      <tr key={`${type}-${entry.id}-${index}`}>
+                        <td className="border px-2 py-1">{entry.name}</td>
+
+                        {type === "plant" ? (
+                          (() => {
+                            const plant = entry as Plant;
+                            return (
+                              <>
+                                <td className="border px-2 py-1">{plant.light_level || "N/A"}</td>
+                                <td className="border px-2 py-1">{plant.co2_required ? "Yes" : "No"}</td>
+                                <td className="border px-2 py-1">{plant.temperature_range || "?"}</td>
+                              </>
+                            );
+                          })()
+                        ) : (
+                          <>
+                            <td className="border px-2 py-1">
+                              {(entry as Entry).ph_low ?? "?"}–{(entry as Entry).ph_high ?? "?"}
+                            </td>
+                            <td className="border px-2 py-1">
+                              {(entry as Entry).hardness_low ?? "?"}–{(entry as Entry).hardness_high ?? "?"}
+                            </td>
+                            <td className="border px-2 py-1">
+                              {(entry as Entry).temp_low ?? "?"}–{(entry as Entry).temp_high ?? "?"}
+                            </td>
+                            <td className="border px-2 py-1">{(entry as Entry).aggressiveness || "N/A"}</td>
+                          </>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               )}
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map((entry, index) => (
-              <tr key={`${type}-${entry.id}-${index}`}>
-                <td className="border px-2 py-1">{entry.name}</td>
-
-                {type === "plant" ? (
-                  <>
-                    {(() => {
-  const plant = entry as Plant;
-  return (
-    <>
-      <td className="border px-2 py-1">{plant.light_level || "N/A"}</td>
-      <td className="border px-2 py-1">{plant.co2_required ? "Yes" : "No"}</td>
-      <td className="border px-2 py-1">{plant.temperature_range || "?"}</td>
-    </>
-  );
-})()}
-
-                  </>
-                ) : (
-                  <>
-                    <td className="border px-2 py-1">
-                      {(entry as Entry).ph_low ?? "?"}–{(entry as Entry).ph_high ?? "?"}
-                    </td>
-                    <td className="border px-2 py-1">
-                      {(entry as Entry).hardness_low ?? "?"}–{(entry as Entry).hardness_high ?? "?"}
-                    </td>
-                    <td className="border px-2 py-1">
-                      {(entry as Entry).temp_low ?? "?"}–{(entry as Entry).temp_high ?? "?"}
-                    </td>
-                    <td className="border px-2 py-1">{(entry as Entry).aggressiveness || "N/A"}</td>
-                  </>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
-  ))}
-</div>
-
+            </div>
+          ))}
+        </div>
+      </div>
     </ClientLayout>
   );
 }
