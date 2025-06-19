@@ -1,5 +1,8 @@
 # Git Commands for Uploading Code
 
+gitupdate
+
+
 ## 1. Check status
 
 git status
@@ -31,3 +34,4 @@ function gitupdate {
   git push origin main
 }
 
+gitupdate
