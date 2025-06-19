@@ -11,7 +11,8 @@ interface Plant {
   temperature_range?: string;
 }
 
-interface Entry {
+interface AssignedEntry {
+  tank_entry_id: number; // 👈 uniquely identifies row in TankFish
   id: number;
   name: string;
   ph_low?: number;
@@ -23,9 +24,9 @@ interface Entry {
   aggressiveness?: string;
 }
 
-type Fish = Entry;
-type Invert = Entry;
-type Coral = Entry;
+type Fish = AssignedEntry;
+type Invert = AssignedEntry;
+type Coral = AssignedEntry;
 
 function singularize(type: string) {
   if (type === "fish") return "fish";
@@ -183,45 +184,53 @@ export default function WorkDetailPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {entries.map((entry: Entry, index: number) => (
-                      <tr key={`${type}-${entry.id}-${index}`}>
-                        <td className="border px-2 py-1">{entry.name}</td>
+                    {entries.map((entry, index) => (
+  <tr key={`${type}-${entry.id}-${index}`}>
+    <td className="border px-2 py-1">{entry.name}</td>
 
-                        {type === "plant" ? (
-                          (() => {
-                            const plant = entry as Plant;
-                            return (
-                              <>
-                                <td className="border px-2 py-1">{plant.light_level || "N/A"}</td>
-                                <td className="border px-2 py-1">{plant.co2_required ? "Yes" : "No"}</td>
-                                <td className="border px-2 py-1">{plant.temperature_range || "?"}</td>
-                              </>
-                            );
-                          })()
-                        ) : (
-                          <>
-                            <td className="border px-2 py-1">
-                              {(entry as Entry).ph_low ?? "?"}–{(entry as Entry).ph_high ?? "?"}
-                            </td>
-                            <td className="border px-2 py-1">
-                              {(entry as Entry).hardness_low ?? "?"}–{(entry as Entry).hardness_high ?? "?"}
-                            </td>
-                            <td className="border px-2 py-1">
-                              {(entry as Entry).temp_low ?? "?"}–{(entry as Entry).temp_high ?? "?"}
-                            </td>
-                            <td className="border px-2 py-1">{(entry as Entry).aggressiveness || "N/A"}</td>
-                          </>
-                        )}
-                        <td className="border px-2 py-1 text-center">
-                          <button
-                            onClick={() => handleDelete(type, entry.id)}
-                            className="text-red-600 hover:underline text-sm"
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+    {type === "plant" ? (
+      (() => {
+        const plant = entry as Plant;
+        return (
+          <>
+            <td className="border px-2 py-1">{plant.light_level || "N/A"}</td>
+            <td className="border px-2 py-1">{plant.co2_required ? "Yes" : "No"}</td>
+            <td className="border px-2 py-1">{plant.temperature_range || "?"}</td>
+            <td className="border px-2 py-1 text-center">
+              <button
+                onClick={() => handleDelete(type, plant.id)}
+                className="text-red-600 hover:underline text-sm"
+              >
+                Delete
+              </button>
+            </td>
+          </>
+        );
+      })()
+    ) : (
+      (() => {
+        const item = entry as AssignedEntry;
+        return (
+          <>
+            <td className="border px-2 py-1">{item.ph_low ?? "?"}–{item.ph_high ?? "?"}</td>
+            <td className="border px-2 py-1">{item.hardness_low ?? "?"}–{item.hardness_high ?? "?"}</td>
+            <td className="border px-2 py-1">{item.temp_low ?? "?"}–{item.temp_high ?? "?"}</td>
+            <td className="border px-2 py-1">{item.aggressiveness || "N/A"}</td>
+            <td className="border px-2 py-1 text-center">
+              <button
+                onClick={() => handleDelete(type, item.tank_entry_id)}
+                className="text-red-600 hover:underline text-sm"
+              >
+                Delete
+              </button>
+            </td>
+          </>
+        );
+      })()
+    )}
+  </tr>
+))}
+
                   </tbody>
                 </table>
               )}

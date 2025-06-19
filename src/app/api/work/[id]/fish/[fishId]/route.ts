@@ -5,7 +5,8 @@ export async function DELETE(
   _req: NextRequest,
   context: { params: { id: string; fishId: string } }
 ) {
-  const { id, fishId } = context.params;
+ const { id, fishId } = await context.params;
+
 
   try {
     await pool.query(

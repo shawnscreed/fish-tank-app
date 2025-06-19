@@ -10,11 +10,14 @@ export async function GET(
   try {
     const result = await pool.query(
       `
-      SELECT f.id, f.name, f.ph_low, f.ph_high, f.hardness_low, f.hardness_high, f.temp_low, f.temp_high, f.aggressiveness
-      FROM "TankFish" tf
-      JOIN "Fish" f ON tf.fish_id = f.id
-      WHERE tf.tank_id = $1
-      ORDER BY f.name
+      SELECT tf.id AS tank_entry_id, f.id AS fish_id,
+       f.name, f.ph_low, f.ph_high, f.hardness_low, f.hardness_high,
+       f.temp_low, f.temp_high, f.aggressiveness
+FROM "TankFish" tf
+JOIN "Fish" f ON tf.fish_id = f.id
+WHERE tf.tank_id = $1
+ORDER BY f.name
+
       `,
       [id]
     );
