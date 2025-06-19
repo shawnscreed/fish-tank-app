@@ -13,7 +13,7 @@ export async function GET(
       SELECT c.id, c.name, c.ph_low, c.ph_high, c.hardness_low, c.hardness_high,
              c.temp_low, c.temp_high, c.aggressiveness
       FROM "TankCoral" tc
-      JOIN "Corals" c ON tc.coral_id = c.id
+      JOIN "Coral" c ON tc.coral_id = c.id
       WHERE tc.tank_id = $1
       ORDER BY c.name
       `,
