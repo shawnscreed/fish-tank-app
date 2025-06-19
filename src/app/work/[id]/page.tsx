@@ -18,7 +18,7 @@ interface Plant {
 
 // Common structure for items from join tables (e.g., TankFish, TankCoral)
 interface AssignedEntry {
-  tank_entry_id: number; // Unique row ID in join table
+  tank_entry_id: number;
   id: number;
   name: string;
   ph_low?: number;
@@ -30,7 +30,23 @@ interface AssignedEntry {
   aggressiveness?: string;
 }
 
-// Aliases for assigned types
+// Represents a water test result
+interface WaterTest {
+  id: number;
+  test_date: string;
+  ph?: number;
+  hardness?: number;
+  kh?: number;
+  ammonia?: number;
+  nitrite?: number;
+  nitrate?: number;
+  salinity?: number;
+  calcium?: number;
+  magnesium?: number;
+  alkalinity?: number;
+  notes?: string;
+}
+
 type Fish = AssignedEntry;
 type Invert = AssignedEntry;
 type Coral = AssignedEntry;
@@ -54,6 +70,7 @@ export default function WorkDetailPage() {
   const [assignedPlant, setAssignedPlant] = useState<Plant[]>([]);
   const [assignedInverts, setAssignedInverts] = useState<Invert[]>([]);
   const [assignedCoral, setAssignedCoral] = useState<Coral[]>([]);
+  const [latestWaterTest, setLatestWaterTest] = useState<WaterTest | null>(null);
 
   const loadAssigned = async () => {
     const [fish, plant, inverts, coral] = await Promise.all([
@@ -66,6 +83,14 @@ export default function WorkDetailPage() {
     setAssignedPlant(plant);
     setAssignedInverts(inverts);
     setAssignedCoral(coral);
+  };
+
+  const fetchLatestWaterTest = async () => {
+    const res = await fetch(`/api/work/${id}/water`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.length > 0) setLatestWaterTest(data[0]);
+    }
   };
 
   const handleDelete = async (type: string, entryId: number) => {
@@ -100,6 +125,7 @@ export default function WorkDetailPage() {
     fetch(`/api/work/${id}`).then(res => res.json()).then(setTank);
     fetch(`/api/${selectedType}`).then(res => res.json()).then(setEntryList);
     loadAssigned();
+    fetchLatestWaterTest();
   }, [id, selectedType]);
 
   if (!tank) return <ClientLayout><div className="p-6">Loading...</div></ClientLayout>;
@@ -110,6 +136,23 @@ export default function WorkDetailPage() {
         <h1 className="text-xl font-bold mb-4">Tank #{id} Details</h1>
         <p><strong>Water Type:</strong> {tank.water_type}</p>
         <p><strong>Gallons:</strong> {tank.gallons}</p>
+
+        {/* Latest water test summary */}
+        {latestWaterTest && (
+          <div className="my-4 p-4 bg-blue-50 border rounded">
+            <h2 className="font-semibold mb-2">Most Recent Water Test</h2>
+            <p><strong>Date:</strong> {new Date(latestWaterTest.test_date).toLocaleString()}</p>
+            <p><strong>pH:</strong> {latestWaterTest.ph ?? "N/A"}</p>
+            <p><strong>Hardness:</strong> {latestWaterTest.hardness ?? "N/A"}</p>
+            <p><strong>Ammonia:</strong> {latestWaterTest.ammonia ?? "N/A"}</p>
+            <p><strong>Nitrite:</strong> {latestWaterTest.nitrite ?? "N/A"}</p>
+            <p><strong>Nitrate:</strong> {latestWaterTest.nitrate ?? "N/A"}</p>
+            <p><strong>Salinity:</strong> {latestWaterTest.salinity ?? "N/A"}</p>
+            {latestWaterTest.notes && (
+              <p><strong>Notes:</strong> {latestWaterTest.notes}</p>
+            )}
+          </div>
+        )}
 
         {/* Link to water test page */}
         <div className="my-4">
