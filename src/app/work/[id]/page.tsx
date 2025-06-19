@@ -1,12 +1,13 @@
 "use client";
 
 // Page: app/work/[id]/page.tsx - Displays and manages a tank's assigned fish, plants, inverts, and coral.
+// This is the main component for rendering tank details and allowing users to assign/remove fish, plants, inverts, and corals.
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import ClientLayout from "@/app/ClientLayout";
 
-// Represents a plant entry
+// Represents a plant entry with additional metadata
 interface Plant {
   id: number;
   name: string;
@@ -15,9 +16,9 @@ interface Plant {
   temperature_range?: string;
 }
 
-// Represents any assigned entry from a join table (like TankFish)
+// Common structure for items from join tables (e.g., TankFish, TankCoral)
 interface AssignedEntry {
-  tank_entry_id: number;
+  tank_entry_id: number; // Unique row ID in join table
   id: number;
   name: string;
   ph_low?: number;
@@ -29,11 +30,12 @@ interface AssignedEntry {
   aggressiveness?: string;
 }
 
+// Aliases for assigned types
 type Fish = AssignedEntry;
 type Invert = AssignedEntry;
 type Coral = AssignedEntry;
 
-// Convert plural type to singular table name
+// Converts selectedType to singular form used in API route naming
 function singularize(type: string) {
   if (type === "fish") return "fish";
   if (type === "plant") return "plant";
@@ -43,18 +45,19 @@ function singularize(type: string) {
 }
 
 export default function WorkDetailPage() {
-  const { id } = useParams();
-  const [tank, setTank] = useState<any>(null);
-  const [selectedType, setSelectedType] = useState("fish");
-  const [entryList, setEntryList] = useState<any[]>([]);
-  const [selectedId, setSelectedId] = useState("");
+  const { id } = useParams(); // Tank ID from dynamic route
+  const [tank, setTank] = useState<any>(null); // Tank details object
+  const [selectedType, setSelectedType] = useState("fish"); // Dropdown type selector
+  const [entryList, setEntryList] = useState<any[]>([]); // Available assignable entries
+  const [selectedId, setSelectedId] = useState(""); // Selected ID to assign
 
+  // All assigned entries by type
   const [assignedFish, setAssignedFish] = useState<Fish[]>([]);
   const [assignedPlant, setAssignedPlant] = useState<Plant[]>([]);
   const [assignedInverts, setAssignedInverts] = useState<Invert[]>([]);
   const [assignedCoral, setAssignedCoral] = useState<Coral[]>([]);
 
-  // Loads all assigned entries (fish, plant, etc.) for this tank
+  // Fetch assigned fish/plants/inverts/corals for this tank
   const loadAssigned = async () => {
     const [fish, plant, inverts, coral] = await Promise.all([
       fetch(`/api/work/${id}/fish`).then(res => res.json()),
@@ -69,7 +72,7 @@ export default function WorkDetailPage() {
     setAssignedCoral(coral);
   };
 
-  // Deletes a specific item from the tank by join table row ID
+  // Deletes entry from tank using its join table row ID (tank_entry_id)
   const handleDelete = async (type: string, entryId: number) => {
     const res = await fetch(`/api/work/${id}/${type}/${entryId}`, {
       method: "DELETE",
@@ -83,7 +86,7 @@ export default function WorkDetailPage() {
     }
   };
 
-  // Assigns the selected entry to the tank
+  // Assigns a new entry (by ID) to the tank
   const assignItem = async () => {
     if (!selectedId) return;
 
@@ -107,7 +110,7 @@ export default function WorkDetailPage() {
     }
   };
 
-  // Load tank and assigned entries on page load or when type changes
+  // Fetch tank details and available entries on page load or type switch
   useEffect(() => {
     fetch(`/api/work/${id}`).then(res => res.json()).then(setTank);
     fetch(`/api/${selectedType}`).then(res => res.json()).then(setEntryList);
@@ -125,6 +128,7 @@ export default function WorkDetailPage() {
         <p><strong>Water Type:</strong> {tank.water_type}</p>
         <p><strong>Gallons:</strong> {tank.gallons}</p>
 
+        {/* Assignment UI */}
         <div className="my-4">
           <label className="font-semibold">Select Type to Assign: </label>
           <select
@@ -159,6 +163,7 @@ export default function WorkDetailPage() {
           </button>
         </div>
 
+        {/* Display assigned items by category */}
         <div className="mt-6 space-y-8">
           {[{ type: "fish", label: "Fish", entries: assignedFish },
             { type: "inverts", label: "Inverts", entries: assignedInverts },
@@ -205,7 +210,8 @@ export default function WorkDetailPage() {
                                 <td className="border px-2 py-1">{plant.temperature_range || "?"}</td>
                                 <td className="border px-2 py-1 text-center">
                                   <button
-                                    onClick={() => handleDelete(type, plant.id)}
+                                    onClick={() => handleDelete(type, (plant as any).tank_entry_id)}
+
                                     className="text-red-600 hover:underline text-sm"
                                   >
                                     Delete
