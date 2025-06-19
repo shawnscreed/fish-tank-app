@@ -10,9 +10,10 @@ export async function DELETE(
 
   try {
     await pool.query(
-      'DELETE FROM "TankFish" WHERE tank_id = $1 AND fish_id = $2',
-      [id, fishId]
-    );
+  'DELETE FROM "TankFish" WHERE id = $1',
+  [fishId] // Here, fishId is really tank_entry_id
+);
+
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
