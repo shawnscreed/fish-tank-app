@@ -1,8 +1,12 @@
 "use client";
+
+// Page: app/work/[id]/page.tsx - Displays and manages a tank's assigned fish, plants, inverts, and coral.
+
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import ClientLayout from "@/app/ClientLayout";
 
+// Represents a plant entry
 interface Plant {
   id: number;
   name: string;
@@ -11,8 +15,9 @@ interface Plant {
   temperature_range?: string;
 }
 
+// Represents any assigned entry from a join table (like TankFish)
 interface AssignedEntry {
-  tank_entry_id: number; // 👈 uniquely identifies row in TankFish
+  tank_entry_id: number;
   id: number;
   name: string;
   ph_low?: number;
@@ -28,6 +33,7 @@ type Fish = AssignedEntry;
 type Invert = AssignedEntry;
 type Coral = AssignedEntry;
 
+// Convert plural type to singular table name
 function singularize(type: string) {
   if (type === "fish") return "fish";
   if (type === "plant") return "plant";
@@ -48,6 +54,7 @@ export default function WorkDetailPage() {
   const [assignedInverts, setAssignedInverts] = useState<Invert[]>([]);
   const [assignedCoral, setAssignedCoral] = useState<Coral[]>([]);
 
+  // Loads all assigned entries (fish, plant, etc.) for this tank
   const loadAssigned = async () => {
     const [fish, plant, inverts, coral] = await Promise.all([
       fetch(`/api/work/${id}/fish`).then(res => res.json()),
@@ -62,6 +69,7 @@ export default function WorkDetailPage() {
     setAssignedCoral(coral);
   };
 
+  // Deletes a specific item from the tank by join table row ID
   const handleDelete = async (type: string, entryId: number) => {
     const res = await fetch(`/api/work/${id}/${type}/${entryId}`, {
       method: "DELETE",
@@ -75,6 +83,7 @@ export default function WorkDetailPage() {
     }
   };
 
+  // Assigns the selected entry to the tank
   const assignItem = async () => {
     if (!selectedId) return;
 
@@ -98,6 +107,7 @@ export default function WorkDetailPage() {
     }
   };
 
+  // Load tank and assigned entries on page load or when type changes
   useEffect(() => {
     fetch(`/api/work/${id}`).then(res => res.json()).then(setTank);
     fetch(`/api/${selectedType}`).then(res => res.json()).then(setEntryList);
@@ -150,15 +160,13 @@ export default function WorkDetailPage() {
         </div>
 
         <div className="mt-6 space-y-8">
-          {[
-            { type: "fish", label: "Fish", entries: assignedFish },
+          {[{ type: "fish", label: "Fish", entries: assignedFish },
             { type: "inverts", label: "Inverts", entries: assignedInverts },
             { type: "plant", label: "Plants", entries: assignedPlant },
             { type: "coral", label: "Coral", entries: assignedCoral },
           ].map(({ type, label, entries }) => (
             <div key={type}>
               <h3 className="font-semibold mb-2">Assigned {label}</h3>
-
               {entries.length === 0 ? (
                 <p>No {label.toLowerCase()} assigned yet.</p>
               ) : (
@@ -185,52 +193,50 @@ export default function WorkDetailPage() {
                   </thead>
                   <tbody>
                     {entries.map((entry, index) => (
-  <tr key={`${type}-${entry.id}-${index}`}>
-    <td className="border px-2 py-1">{entry.name}</td>
-
-    {type === "plant" ? (
-      (() => {
-        const plant = entry as Plant;
-        return (
-          <>
-            <td className="border px-2 py-1">{plant.light_level || "N/A"}</td>
-            <td className="border px-2 py-1">{plant.co2_required ? "Yes" : "No"}</td>
-            <td className="border px-2 py-1">{plant.temperature_range || "?"}</td>
-            <td className="border px-2 py-1 text-center">
-              <button
-                onClick={() => handleDelete(type, plant.id)}
-                className="text-red-600 hover:underline text-sm"
-              >
-                Delete
-              </button>
-            </td>
-          </>
-        );
-      })()
-    ) : (
-      (() => {
-        const item = entry as AssignedEntry;
-        return (
-          <>
-            <td className="border px-2 py-1">{item.ph_low ?? "?"}–{item.ph_high ?? "?"}</td>
-            <td className="border px-2 py-1">{item.hardness_low ?? "?"}–{item.hardness_high ?? "?"}</td>
-            <td className="border px-2 py-1">{item.temp_low ?? "?"}–{item.temp_high ?? "?"}</td>
-            <td className="border px-2 py-1">{item.aggressiveness || "N/A"}</td>
-            <td className="border px-2 py-1 text-center">
-              <button
-                onClick={() => handleDelete(type, item.tank_entry_id)}
-                className="text-red-600 hover:underline text-sm"
-              >
-                Delete
-              </button>
-            </td>
-          </>
-        );
-      })()
-    )}
-  </tr>
-))}
-
+                      <tr key={`${type}-${entry.id}-${index}`}>
+                        <td className="border px-2 py-1">{entry.name}</td>
+                        {type === "plant" ? (
+                          (() => {
+                            const plant = entry as Plant;
+                            return (
+                              <>
+                                <td className="border px-2 py-1">{plant.light_level || "N/A"}</td>
+                                <td className="border px-2 py-1">{plant.co2_required ? "Yes" : "No"}</td>
+                                <td className="border px-2 py-1">{plant.temperature_range || "?"}</td>
+                                <td className="border px-2 py-1 text-center">
+                                  <button
+                                    onClick={() => handleDelete(type, plant.id)}
+                                    className="text-red-600 hover:underline text-sm"
+                                  >
+                                    Delete
+                                  </button>
+                                </td>
+                              </>
+                            );
+                          })()
+                        ) : (
+                          (() => {
+                            const item = entry as AssignedEntry;
+                            return (
+                              <>
+                                <td className="border px-2 py-1">{item.ph_low ?? "?"}–{item.ph_high ?? "?"}</td>
+                                <td className="border px-2 py-1">{item.hardness_low ?? "?"}–{item.hardness_high ?? "?"}</td>
+                                <td className="border px-2 py-1">{item.temp_low ?? "?"}–{item.temp_high ?? "?"}</td>
+                                <td className="border px-2 py-1">{item.aggressiveness || "N/A"}</td>
+                                <td className="border px-2 py-1 text-center">
+                                  <button
+                                    onClick={() => handleDelete(type, item.tank_entry_id)}
+                                    className="text-red-600 hover:underline text-sm"
+                                  >
+                                    Delete
+                                  </button>
+                                </td>
+                              </>
+                            );
+                          })()
+                        )}
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               )}
