@@ -61,6 +61,19 @@ export default function WorkDetailPage() {
     setAssignedCoral(coral);
   };
 
+  const handleDelete = async (type: string, entryId: number) => {
+    const res = await fetch(`/api/work/${id}/${type}/${entryId}`, {
+      method: "DELETE",
+    });
+
+    if (res.ok) {
+      alert(`${type} removed from tank`);
+      await loadAssigned();
+    } else {
+      alert(`Failed to delete ${type}`);
+    }
+  };
+
   const assignItem = async () => {
     if (!selectedId) return;
 
@@ -166,6 +179,7 @@ export default function WorkDetailPage() {
                           <th className="border px-2 py-1">Aggression</th>
                         </>
                       )}
+                      <th className="border px-2 py-1">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -198,6 +212,14 @@ export default function WorkDetailPage() {
                             <td className="border px-2 py-1">{(entry as Entry).aggressiveness || "N/A"}</td>
                           </>
                         )}
+                        <td className="border px-2 py-1 text-center">
+                          <button
+                            onClick={() => handleDelete(type, entry.id)}
+                            className="text-red-600 hover:underline text-sm"
+                          >
+                            Delete
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
