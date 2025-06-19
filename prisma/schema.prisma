@@ -1,0 +1,26 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Fish {
+  id              Int      @id @default(autoincrement())
+  name            String
+  species         String?
+  tankNumber      Int?
+  addedOn         DateTime @default(now())
+  input_number    Int      @default(autoincrement())
+  water_type      String?  @db.VarChar(20)
+  number_of_fish  Int?
+  species_general String?  @db.VarChar(100)
+  ph_low          Decimal? @db.Decimal(3, 2)
+  ph_high         Decimal? @db.Decimal(3, 2)
+  hardness_low    Int?
+  hardness_high   Int?
+  temp_low        Decimal? @db.Decimal(4, 1)
+  temp_high       Decimal? @db.Decimal(4, 1)
+}
