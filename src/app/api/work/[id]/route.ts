@@ -49,6 +49,50 @@ export async function DELETE(
 }
 
 /**
+ * POST /api/work/:id
+ * Assigns a fish, plant, invert, or coral to a tank
+ */
+export async function POST(
+  req: NextRequest,
+  context: { params: { id: string } }
+) {
+  const { type, entryId } = await req.json();
+   const { id } = await context.params; // ✅ Correct use
+  const tankId = parseInt(id);
+
+  try {
+    if (type === "fish") {
+      await pool.query(
+        'INSERT INTO "TankFish" (tank_id, fish_id) VALUES ($1, $2)',
+        [tankId, entryId]
+      );
+    } else if (type === "plant") {
+      await pool.query(
+        'INSERT INTO "PlantTank" (tank_id, plant_id) VALUES ($1, $2)',
+        [tankId, entryId]
+      );
+    } else if (type === "corals") {
+      await pool.query(
+        'INSERT INTO "CoralTank" (tank_id, coral_id) VALUES ($1, $2)',
+        [tankId, entryId]
+      );
+    } else if (type === "inverts") {
+      await pool.query(
+        'INSERT INTO "InvertTank" (tank_id, invert_id) VALUES ($1, $2)',
+        [tankId, entryId]
+      );
+    } else {
+      return NextResponse.json({ error: "Invalid type" }, { status: 400 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    console.error("POST /api/work/:id error:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+/**
  * PUT /api/work/:id
  * Updates fields for a specific tank
  */
