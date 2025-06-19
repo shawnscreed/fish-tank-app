@@ -1,21 +1,18 @@
+// src/app/api/work/[id]/inverts/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
-// GET /api/work/:id/inverts
 export async function GET(
   _req: NextRequest,
   context: { params: { id: string } }
 ) {
-  const { id } = await context.params; // 👈 MUST be awaited
-
-
-
-
+  const { id } = await context.params;
 
   try {
     const result = await pool.query(
       `
-      SELECT i.id, i.name, i.ph_low, i.ph_high, i.hardness_low, i.hardness_high, i.temp_low, i.temp_high, i.aggressiveness
+      SELECT ti.id AS tank_entry_id, i.id, i.name, i.ph_low, i.ph_high,
+             i.hardness_low, i.hardness_high, i.temp_low, i.temp_high, i.aggressiveness
       FROM "TankInvert" ti
       JOIN "Inverts" i ON ti.invert_id = i.id
       WHERE ti.tank_id = $1
@@ -30,4 +27,3 @@ export async function GET(
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
-
