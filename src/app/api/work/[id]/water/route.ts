@@ -1,14 +1,14 @@
-// File: app/api/work/[id]/water/route.ts - Handles GET and POST for water tests on a tank.
-
 import { NextRequest, NextResponse } from "next/server";
-import pool from "@/lib/db";
+import pool from "@/lib/db"; // This is your DB connection
 
-// GET: List all water tests for a tank by tank_id
+
+
+// ✅ Safely accessing `params` with await
 export async function GET(
   _req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = context.params;
+  const { id } = await context.params;
 
   try {
     const result = await pool.query(
@@ -17,17 +17,15 @@ export async function GET(
     );
     return NextResponse.json(result.rows);
   } catch (err: any) {
-    console.error("GET /api/work/[id]/water error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
 
-// POST: Add a new water test to the tank
 export async function POST(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = context.params;
+  const { id } = await context.params;
   const data = await req.json();
 
   try {
@@ -57,7 +55,6 @@ export async function POST(
 
     return NextResponse.json(result.rows[0]);
   } catch (err: any) {
-    console.error("POST /api/work/[id]/water error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

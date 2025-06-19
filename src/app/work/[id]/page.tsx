@@ -1,7 +1,6 @@
 "use client";
 
-// Page: app/work/[id]/page.tsx - Displays and manages a tank's assigned fish, plants, inverts, and coral.
-// This is the main component for rendering tank details and allowing users to assign/remove fish, plants, inverts, and corals.
+// Page: app/work/[id]/page.tsx - Displays and manages a tank's assigned fish, plants, inverts, coral, and includes water test logging link.
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -36,7 +35,6 @@ type Fish = AssignedEntry;
 type Invert = AssignedEntry;
 type Coral = AssignedEntry;
 
-// Converts selectedType to singular form used in API route naming
 function singularize(type: string) {
   if (type === "fish") return "fish";
   if (type === "plant") return "plant";
@@ -46,19 +44,17 @@ function singularize(type: string) {
 }
 
 export default function WorkDetailPage() {
-  const { id } = useParams(); // Tank ID from dynamic route
-  const [tank, setTank] = useState<any>(null); // Tank details object
-  const [selectedType, setSelectedType] = useState("fish"); // Dropdown type selector
-  const [entryList, setEntryList] = useState<any[]>([]); // Available assignable entries
-  const [selectedId, setSelectedId] = useState(""); // Selected ID to assign
+  const { id } = useParams();
+  const [tank, setTank] = useState<any>(null);
+  const [selectedType, setSelectedType] = useState("fish");
+  const [entryList, setEntryList] = useState<any[]>([]);
+  const [selectedId, setSelectedId] = useState("");
 
-  // All assigned entries by type
   const [assignedFish, setAssignedFish] = useState<Fish[]>([]);
   const [assignedPlant, setAssignedPlant] = useState<Plant[]>([]);
   const [assignedInverts, setAssignedInverts] = useState<Invert[]>([]);
   const [assignedCoral, setAssignedCoral] = useState<Coral[]>([]);
 
-  // Fetch assigned fish/plants/inverts/corals for this tank
   const loadAssigned = async () => {
     const [fish, plant, inverts, coral] = await Promise.all([
       fetch(`/api/work/${id}/fish`).then(res => res.json()),
@@ -66,19 +62,16 @@ export default function WorkDetailPage() {
       fetch(`/api/work/${id}/inverts`).then(res => res.json()),
       fetch(`/api/work/${id}/coral`).then(res => res.json()),
     ]);
-
     setAssignedFish(fish);
     setAssignedPlant(plant);
     setAssignedInverts(inverts);
     setAssignedCoral(coral);
   };
 
-  // Deletes entry from tank using its join table row ID (tank_entry_id)
   const handleDelete = async (type: string, entryId: number) => {
     const res = await fetch(`/api/work/${id}/${type}/${entryId}`, {
       method: "DELETE",
     });
-
     if (res.ok) {
       alert(`${type} removed from tank`);
       await loadAssigned();
@@ -87,21 +80,13 @@ export default function WorkDetailPage() {
     }
   };
 
-  // Assigns a new entry (by ID) to the tank
   const assignItem = async () => {
     if (!selectedId) return;
-
     const res = await fetch(`/api/work/${id}`, {
       method: "POST",
-      body: JSON.stringify({
-        type: selectedType,
-        entryId: selectedId,
-      }),
-      headers: {
-        "Content-Type": "application/json",
-      },
+      body: JSON.stringify({ type: selectedType, entryId: selectedId }),
+      headers: { "Content-Type": "application/json" },
     });
-
     if (res.ok) {
       alert(`${selectedType} added to tank!`);
       setSelectedId("");
@@ -111,16 +96,13 @@ export default function WorkDetailPage() {
     }
   };
 
-  // Fetch tank details and available entries on page load or type switch
   useEffect(() => {
     fetch(`/api/work/${id}`).then(res => res.json()).then(setTank);
     fetch(`/api/${selectedType}`).then(res => res.json()).then(setEntryList);
     loadAssigned();
   }, [id, selectedType]);
 
-  if (!tank) {
-    return <ClientLayout><div className="p-6">Loading...</div></ClientLayout>;
-  }
+  if (!tank) return <ClientLayout><div className="p-6">Loading...</div></ClientLayout>;
 
   return (
     <ClientLayout>
@@ -139,7 +121,7 @@ export default function WorkDetailPage() {
           </Link>
         </div>
 
-        {/* Assignment UI */}
+        {/* Assignment controls */}
         <div className="my-4">
           <label className="font-semibold">Select Type to Assign: </label>
           <select
@@ -174,13 +156,12 @@ export default function WorkDetailPage() {
           </button>
         </div>
 
-        {/* Display assigned items by category */}
+        {/* Display assigned entries by type */}
         <div className="mt-6 space-y-8">
           {[{ type: "fish", label: "Fish", entries: assignedFish },
             { type: "inverts", label: "Inverts", entries: assignedInverts },
             { type: "plant", label: "Plants", entries: assignedPlant },
-            { type: "coral", label: "Coral", entries: assignedCoral },
-          ].map(({ type, label, entries }) => (
+            { type: "coral", label: "Coral", entries: assignedCoral }].map(({ type, label, entries }) => (
             <div key={type}>
               <h3 className="font-semibold mb-2">Assigned {label}</h3>
               {entries.length === 0 ? (
