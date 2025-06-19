@@ -30,7 +30,7 @@ type Coral = Entry;
 function singularize(type: string) {
   if (type === "fish") return "fish";
   if (type === "plant") return "plant";
-  if (type === "corals") return "coral";
+  if (type === "coral") return "coral";
   if (type === "inverts") return "invert";
   return type;
 }
@@ -45,20 +45,20 @@ export default function WorkDetailPage() {
   const [assignedFish, setAssignedFish] = useState<Fish[]>([]);
   const [assignedPlant, setAssignedPlant] = useState<Plant[]>([]);
   const [assignedInverts, setAssignedInverts] = useState<Invert[]>([]);
-  const [assignedCorals, setAssignedCorals] = useState<Coral[]>([]);
+  const [assignedCoral, setAssignedCoral] = useState<Coral[]>([]);
 
   const loadAssigned = async () => {
-    const [fish, plant, inverts, corals] = await Promise.all([
+    const [fish, plant, inverts, coral] = await Promise.all([
       fetch(`/api/work/${id}/fish`).then(res => res.json()),
       fetch(`/api/work/${id}/plant`).then(res => res.json()),
       fetch(`/api/work/${id}/inverts`).then(res => res.json()),
-      fetch(`/api/work/${id}/corals`).then(res => res.json()),
+      fetch(`/api/work/${id}/coral`).then(res => res.json()),
     ]);
 
     setAssignedFish(fish);
     setAssignedPlant(plant);
     setAssignedInverts(inverts);
-    setAssignedCorals(corals);
+    setAssignedCoral(coral);
   };
 
   const assignItem = async () => {
@@ -110,7 +110,7 @@ export default function WorkDetailPage() {
           >
             <option value="fish">Fish</option>
             <option value="plant">Plants</option>
-            <option value="corals">Corals</option>
+            <option value="coral">Coral</option>
             <option value="inverts">Inverts</option>
           </select>
         </div>
@@ -140,7 +140,7 @@ export default function WorkDetailPage() {
             { type: "fish", label: "Fish", entries: assignedFish },
             { type: "inverts", label: "Inverts", entries: assignedInverts },
             { type: "plant", label: "Plants", entries: assignedPlant },
-            { type: "corals", label: "Corals", entries: assignedCorals },
+            { type: "coral", label: "Coral", entries: assignedCoral },
           ].map(({ type, label, entries }) => (
             <div key={type}>
               <h3 className="font-semibold mb-2">Assigned {label}</h3>
@@ -169,7 +169,7 @@ export default function WorkDetailPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {entries.map((entry, index) => (
+                    {entries.map((entry: Entry, index: number) => (
                       <tr key={`${type}-${entry.id}-${index}`}>
                         <td className="border px-2 py-1">{entry.name}</td>
 
