@@ -5,6 +5,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import ClientLayout from "@/app/ClientLayout";
 
 // Represents a plant entry with additional metadata
@@ -128,6 +129,16 @@ export default function WorkDetailPage() {
         <p><strong>Water Type:</strong> {tank.water_type}</p>
         <p><strong>Gallons:</strong> {tank.gallons}</p>
 
+        {/* Link to water test page */}
+        <div className="my-4">
+          <Link
+            href={`/work/${id}/water`}
+            className="text-blue-600 underline hover:text-blue-800"
+          >
+            View & Log Water Tests
+          </Link>
+        </div>
+
         {/* Assignment UI */}
         <div className="my-4">
           <label className="font-semibold">Select Type to Assign: </label>
@@ -210,8 +221,7 @@ export default function WorkDetailPage() {
                                 <td className="border px-2 py-1">{plant.temperature_range || "?"}</td>
                                 <td className="border px-2 py-1 text-center">
                                   <button
-                                    onClick={() => handleDelete(type, (plant as any).tank_entry_id)}
-
+                                    onClick={() => handleDelete(type, plant.id)}
                                     className="text-red-600 hover:underline text-sm"
                                   >
                                     Delete
