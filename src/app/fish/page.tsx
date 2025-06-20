@@ -20,21 +20,21 @@ export default function FishPage() {
   const [fishList, setFishList] = useState<Fish[]>([]);
   const [editing, setEditing] = useState<Record<number | "new", Fish>>({} as Record<number | "new", Fish>);
 
-  useEffect(() => {
-    async function fetchFish() {
-      try {
-        const res = await fetch("/api/fish");
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setFishList(data);
-        } else {
-          console.error("Invalid fish list format", data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch fish list", err);
+  const fetchFish = async () => {
+    try {
+      const res = await fetch("/api/fish");
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setFishList(data);
+      } else {
+        console.error("Invalid fish list format", data);
       }
+    } catch (err) {
+      console.error("Failed to fetch fish list", err);
     }
+  };
 
+  useEffect(() => {
     fetchFish();
   }, []);
 
@@ -60,14 +60,7 @@ export default function FishPage() {
     });
 
     if (res.ok) {
-      const refreshed = await fetch("/api/fish");
-      const data = await refreshed.json();
-      if (Array.isArray(data)) {
-        setFishList(data);
-      } else {
-        console.error("Expected array but got:", data);
-        setFishList([]);
-      }
+      await fetchFish();
       setEditing(prev => {
         const newState = { ...prev };
         delete newState[id];
@@ -76,21 +69,18 @@ export default function FishPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    const res = await fetch(`/api/fish/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ in_use: false }),
-    });
+const handleDelete = async (id: number) => {
+  const res = await fetch(`/api/fish/${id}`, {
+    method: "DELETE",
+  });
 
-    if (res.ok) {
-      const refreshed = await fetch("/api/fish");
-      const data = await refreshed.json();
-      if (Array.isArray(data)) {
-        setFishList(data);
-      }
-    }
-  };
+  if (res.ok) {
+    await fetchFish(); // refresh list
+  } else {
+    console.error("Failed to delete fish:", await res.text());
+  }
+};
+
 
   const fields: (keyof Fish)[] = [
     "name", "water_type",
@@ -140,19 +130,10 @@ export default function FishPage() {
                         <option value="medium">Medium</option>
                         <option value="high">High</option>
                       </select>
-                    ) : field === "in_use" ? (
-                      <select
-                        className="w-full border px-1 py-1"
-                        value={(editing[fish.id!]?.[field] ?? fish[field] ?? true).toString()}
-                        onChange={(e) => handleChange(fish.id!, field, e.target.value === "true")}
-                      >
-                        <option value="true">Yes</option>
-                        <option value="false">No</option>
-                      </select>
                     ) : (
                       <input
                         className="w-full border px-1 py-1"
-                        value={editing[fish.id!]?.[field] ?? fish[field] ?? ""}
+                        value={String(editing[fish.id!]?.[field] ?? fish[field] ?? "")}
                         onChange={(e) => handleChange(fish.id!, field, e.target.value)}
                       />
                     )}
@@ -200,19 +181,10 @@ export default function FishPage() {
                       <option value="medium">Medium</option>
                       <option value="high">High</option>
                     </select>
-                  ) : field === "in_use" ? (
-                    <select
-                      className="w-full border px-1 py-1"
-                      value={(editing["new"]?.[field] ?? true).toString()}
-                      onChange={(e) => handleChange("new", field, e.target.value === "true")}
-                    >
-                      <option value="true">Yes</option>
-                      <option value="false">No</option>
-                    </select>
                   ) : (
                     <input
                       className="w-full border px-1 py-1"
-                      value={editing["new"]?.[field] ?? ""}
+                      value={String(editing["new"]?.[field] ?? "")}
                       onChange={(e) => handleChange("new", field, e.target.value)}
                     />
                   )}

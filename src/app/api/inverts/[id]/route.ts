@@ -23,10 +23,16 @@ export async function GET(
 // PUT /api/inverts/[id]
 export async function PUT(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const body = await req.json();
-  const { id } = context.params;
+  const { id } = await context.params;
+
+  const text = await req.text();
+  if (!text) {
+  return NextResponse.json({ message: "No content to update" }, { status: 200 });
+}
+
+  const body = JSON.parse(text);
 
   const allowedFields = [
     "name", "water_type", "ph_low", "ph_high",
@@ -34,29 +40,24 @@ export async function PUT(
     "in_use", "aggressiveness"
   ];
 
-  // Only include fields that were sent in the request
-  const updates = Object.keys(body)
-    .filter(key => allowedFields.includes(key))
-    .map((key, idx) => `${key} = $${idx + 1}`)
-    .join(', ');
+  const updates = allowedFields
+    .filter((field) => field in body)
+    .map((field, index) => `"${field}" = $${index + 1}`);
 
-  const values = Object.keys(body)
-    .filter(key => allowedFields.includes(key))
-    .map(key => body[key]);
-
-  if (!updates) {
-    return NextResponse.json({ error: 'No valid fields provided' }, { status: 400 });
-  }
+  const values = allowedFields
+    .filter((field) => field in body)
+    .map((field) => body[field]);
 
   try {
     const result = await pool.query(
-      `UPDATE "Inverts" SET ${updates} WHERE id = $${values.length + 1} RETURNING *`,
+      `UPDATE "Inverts" SET ${updates.join(", ")} WHERE id = $${values.length + 1} RETURNING *`,
       [...values, id]
     );
 
     return NextResponse.json(result.rows[0]);
-  } catch (error: any) {
-    console.error('PUT error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (err: any) {
+    console.error("PUT /api/inverts/[id] error:", err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+

@@ -67,8 +67,27 @@ export default function PlantsPage() {
     }
   };
 
+
+
+
+
+
+
+  
+  // ✅ Handle deleting a plant
   const handleDelete = async (id: number) => {
-    // Optional: implement if needed
+    const confirmed = confirm("Are you sure you want to delete this plant?");
+    if (!confirmed) return;
+
+    const res = await fetch(`/api/plant/${id}`, {
+      method: "DELETE",
+    });
+
+    if (res.ok) {
+      setPlantsList(prev => prev.filter((plant) => plant.id !== id));
+    } else {
+      console.error("Failed to delete plant", await res.text());
+    }
   };
 
   const fields: (keyof Plant)[] = [
@@ -117,6 +136,12 @@ export default function PlantsPage() {
                     className="bg-blue-600 text-white px-2 py-1 rounded"
                   >
                     Save
+                  </button>
+                  <button
+                    onClick={() => handleDelete(plant.id!)}
+                    className="bg-red-600 text-white px-2 py-1 rounded"
+                  >
+                    Delete
                   </button>
                 </td>
               </tr>
