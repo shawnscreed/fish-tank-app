@@ -162,7 +162,22 @@ export default function WorkDetailPage() {
           >
             View & Log Water Tests
           </Link>
+
+
         </div>
+
+
+{/* Link to maintenance page */}
+        <div className="my-4">
+<Link
+  href={`/work/${id}/maintenance`}
+  className="text-blue-600 underline hover:text-blue-800"
+>
+  🧪 Maintenance Log
+</Link>
+</div>
+
+
 
         {/* Assignment controls */}
         <div className="my-4">
