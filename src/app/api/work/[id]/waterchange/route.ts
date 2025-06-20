@@ -7,9 +7,9 @@ import pool from "@/lib/db";
 // GET: Fetch all water change records for a specific tank
 export async function GET(
   _req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = context.params;
+  const { id } = await context.params; // ✅ Await required
 
   try {
     const result = await pool.query(
@@ -26,9 +26,9 @@ export async function GET(
 // POST: Add a new water change log for a tank
 export async function POST(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params; // ✅ await before destructuring
+  const { id } = await context.params; // ✅ Await required
   const data = await req.json();
 
   try {
