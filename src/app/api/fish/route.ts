@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
+// GET /api/fish - Return only active fish
 export async function GET() {
   try {
-    const result = await pool.query('SELECT * FROM "Fish" WHERE in_use = TRUE ORDER BY id ASC');
+    const result = await pool.query(`SELECT * FROM "Fish" WHERE in_use = TRUE ORDER BY id`);
     return NextResponse.json(result.rows);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
 
+// POST /api/fish - Add new fish
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -36,13 +38,15 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// PUT /api/fish/[id] - Update existing fish
 export async function PUT(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await context.params;
+
   try {
     const body = await req.json();
-    const { id } = context.params;
 
     const allowedFields = [
       'name', 'water_type', 'ph_low', 'ph_high',
@@ -50,21 +54,22 @@ export async function PUT(
       'aggressiveness', 'in_use'
     ];
 
-    const updates = allowedFields
+    const entries = allowedFields
       .filter(key => key in body)
-      .map((key, idx) => `${key} = $${idx + 1}`)
-      .join(', ');
+      .map((key, i) => ({
+        sql: `"${key}" = $${i + 1}`,
+        value: body[key]
+      }));
 
-    const values = allowedFields
-      .filter(key => key in body)
-      .map(key => body[key]);
-
-    if (updates.length === 0) {
+    if (entries.length === 0) {
       return NextResponse.json({ error: 'No valid fields provided' }, { status: 400 });
     }
 
+    const updateSQL = entries.map(e => e.sql).join(', ');
+    const values = entries.map(e => e.value);
+
     await pool.query(
-      `UPDATE "Fish" SET ${updates} WHERE id = $${values.length + 1}`,
+      `UPDATE "Fish" SET ${updateSQL} WHERE id = $${values.length + 1}`,
       [...values, id]
     );
 

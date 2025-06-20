@@ -4,32 +4,40 @@ import pool from '@/lib/db';
 // GET /api/plant
 export async function GET() {
   try {
-    const result = await pool.query('SELECT * FROM "Plant" ORDER BY id ASC');
+    const result = await pool.query(`
+      SELECT * FROM "Plant"
+      WHERE in_use = TRUE
+      ORDER BY name
+    `);
     return NextResponse.json(result.rows);
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err) {
+    console.error("GET /plant error:", err);
+    return NextResponse.json({ error: "Failed to fetch plants" }, { status: 500 });
   }
 }
 
 // POST /api/plant
 export async function POST(req: NextRequest) {
+  const data = await req.json();
+
   try {
-    const body = await req.json();
+    const result = await pool.query(
+      `
+      INSERT INTO "Plant" (name, light_level, co2_required, temperature_range, in_use)
+      VALUES ($1, $2, $3, $4, TRUE)
+      RETURNING *
+      `,
+      [
+        data.name,
+        data.light_level,
+        data.co2_required ?? false,
+        data.temperature_range
+      ]
+    );
 
-    const fields = ['name', 'light_level', 'co2_required', 'temperature_range'];
-    const values = fields.map(field => body[field]);
-    const placeholders = fields.map((_, i) => `$${i + 1}`).join(', ');
-
-    const query = `
-      INSERT INTO "Plant" (${fields.join(', ')})
-      VALUES (${placeholders})
-      RETURNING *;
-    `;
-
-    const result = await pool.query(query, values);
     return NextResponse.json(result.rows[0]);
   } catch (err: any) {
-    console.error("POST error", err);
+    console.error("POST /plant error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
@@ -37,38 +45,42 @@ export async function POST(req: NextRequest) {
 // PUT /api/plant/:id
 export async function PUT(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await context.params;
+
+  let body;
   try {
-    const body = await req.json();
-    const { id } = context.params;
+    body = await req.json();
+  } catch (err) {
+    console.warn("Empty or invalid JSON body:", err);
+    return NextResponse.json({ error: "Invalid or empty request body" }, { status: 400 });
+  }
 
-    const allowedFields = ['name', 'light_level', 'co2_required', 'temperature_range'];
+  const allowedFields = [
+    "name", "light_level", "co2_required", "temperature_range", "in_use"
+  ];
 
-    const updates = allowedFields
-      .filter(key => key in body)
-      .map((key, idx) => `${key} = $${idx + 1}`)
-      .join(', ');
+  const updates = allowedFields
+    .filter(field => field in body)
+    .map((field, i) => `"${field}" = $${i + 1}`);
 
-    const values = allowedFields
-      .filter(key => key in body)
-      .map(key => body[key]);
+  const values = allowedFields
+    .filter(field => field in body)
+    .map(field => body[field]);
 
-    if (!updates) {
-      return NextResponse.json({ error: 'No valid fields provided' }, { status: 400 });
-    }
+  if (updates.length === 0) {
+    return NextResponse.json({ error: "No valid fields to update" }, { status: 200 });
+  }
 
-    const query = `
-      UPDATE "Plant"
-      SET ${updates}
-      WHERE id = $${values.length + 1}
-      RETURNING *;
-    `;
-
-    const result = await pool.query(query, [...values, id]);
-    return NextResponse.json(result.rows[0]);
-  } catch (err: any) {
-    console.error('PUT error:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  try {
+    await pool.query(
+      `UPDATE "Plant" SET ${updates.join(", ")} WHERE id = $${updates.length + 1}`,
+      [...values, id]
+    );
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("PUT /plant/[id] error:", err);
+    return NextResponse.json({ error: "Database update failed" }, { status: 500 });
   }
 }
