@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 
 interface Tank {
   id: number;
@@ -92,21 +93,19 @@ export default function TankDetail({ userId }: { userId: number }) {
     location.reload();
   };
 
-const deleteItem = async (type: string, itemId: number, assignmentId?: number) => {
-  const payload = type === "fish" || type === "plants"
-    ? { assignment_id: assignmentId }
-    : { [typeToIdKey[type]]: itemId };
+  const deleteItem = async (type: string, itemId: number, assignmentId?: number) => {
+    const payload = type === "fish" || type === "plants"
+      ? { assignment_id: assignmentId }
+      : { [typeToIdKey[type]]: itemId };
 
-  await fetch(`/api/tanks/${tankId}/${type}`, {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+    await fetch(`/api/tanks/${tankId}/${type}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
-  location.reload();
-};
-
-
+    location.reload();
+  };
 
   const typeLabels: Record<string, string> = {
     fish: "fish",
@@ -115,7 +114,6 @@ const deleteItem = async (type: string, itemId: number, assignmentId?: number) =
     corals: "coral",
   };
 
-  // 🛠 Updated: Added null checks and fallbacks to avoid crashing when fields like ph_low are missing (e.g. inverts)
   const renderSection = (type: string, list: any[], options: any[]) => (
     <div className="mb-8">
       <h2 className="text-lg font-semibold mb-1 capitalize">{typeLabels[type]}</h2>
@@ -148,25 +146,24 @@ const deleteItem = async (type: string, itemId: number, assignmentId?: number) =
               <th className="border px-2 py-1">Action</th>
             </tr>
           </thead>
-        <tbody>
-  {list.map((item) => (
-    <tr key={`${type}-${item.assignment_id ?? item.id}`}>
-      <td className="border px-2 py-1">{item.name}</td>
-      <td className="border px-2 py-1">{item.ph_low ?? "N/A"}–{item.ph_high ?? "N/A"}</td>
-      <td className="border px-2 py-1">{item.hardness_low ?? "N/A"}–{item.hardness_high ?? "N/A"}</td>
-      <td className="border px-2 py-1">{item.temp_low ?? "N/A"}–{item.temp_high ?? "N/A"}</td>
-      <td className="border px-2 py-1 text-center">
-        <button
-          onClick={() => deleteItem(type, item.id, item.assignment_id)}
-          className="text-red-600 underline"
-        >
-          Delete
-        </button>
-      </td>
-    </tr>
-  ))}
-</tbody>
-
+          <tbody>
+            {list.map((item) => (
+              <tr key={`${type}-${item.assignment_id ?? item.id}`}>
+                <td className="border px-2 py-1">{item.name}</td>
+                <td className="border px-2 py-1">{item.ph_low ?? "N/A"}–{item.ph_high ?? "N/A"}</td>
+                <td className="border px-2 py-1">{item.hardness_low ?? "N/A"}–{item.hardness_high ?? "N/A"}</td>
+                <td className="border px-2 py-1">{item.temp_low ?? "N/A"}–{item.temp_high ?? "N/A"}</td>
+                <td className="border px-2 py-1 text-center">
+                  <button
+                    onClick={() => deleteItem(type, item.id, item.assignment_id)}
+                    className="text-red-600 underline"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
         </table>
       )}
     </div>
@@ -179,6 +176,18 @@ const deleteItem = async (type: string, itemId: number, assignmentId?: number) =
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-2">Tank #{tank.id} Details</h1>
       <p><strong>Water Type:</strong> {tank.water_type}<br /><strong>Gallons:</strong> {tank.gallons}</p>
+
+      <Link
+    href={`/dashboard/tank/${tankId}/water`}
+    className="block text-blue-600 underline hover:text-blue-800"
+  >
+    View & Log Water Tests
+  </Link>
+  <Link href={`/dashboard/tank/${tankId}/maintenance`}>
+    <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full sm:w-auto">
+      🧰 View Maintenance Logs
+    </button>
+  </Link>
 
       {latestTest && (
         <div className="bg-blue-50 border p-4 mt-4 rounded">
