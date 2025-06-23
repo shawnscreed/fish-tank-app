@@ -1,11 +1,16 @@
-"use client";
-
 import { useParams } from "next/navigation";
-import ClientLayout from "@/app/ClientLayout";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { getUserFromCookies } from "@/lib/auth";
+import ClientLayout from "@/app/ClientLayout";
 
-export default function MaintenanceLogPage() {
+export default async function MaintenanceLogPageWrapper() {
+  const user = await getUserFromCookies();
+
+  return <MaintenanceLogPage user={user} />;
+}
+
+function MaintenanceLogPage({ user }: { user: any }) {
   const { id } = useParams();
 
   const [waterChanges, setWaterChanges] = useState<any[]>([]);
@@ -60,7 +65,7 @@ export default function MaintenanceLogPage() {
   };
 
   return (
-    <ClientLayout>
+    <ClientLayout user={user}>
       <div className="p-6">
         <h1 className="text-xl font-bold mb-4">Tank #{id} Maintenance Log</h1>
 

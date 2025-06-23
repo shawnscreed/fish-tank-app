@@ -1,9 +1,11 @@
-"use client";
-import ClientLayout from "./ClientLayout";
+import { getUserFromCookies } from "@/lib/auth";
+import ClientLayout from "@/app/ClientLayout";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const user = await getUserFromCookies();
+
   return (
-    <ClientLayout>
+    <ClientLayout user={user}>
       <h1 className="text-2xl font-bold mb-4">Welcome to FishTank Manager 🐠</h1>
       <p className="text-gray-700">Use the sidebar to view and manage your tanks and fish.</p>
     </ClientLayout>

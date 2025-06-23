@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import pool from "@/lib/db";
-import { getUserFromRequest } from "@/lib/auth"; // make sure you have this helper
+import { getUserFromRequest } from "@/lib/auth";
 
 export async function GET(req: Request) {
   const user = await getUserFromRequest(req);
@@ -10,7 +10,9 @@ export async function GET(req: Request) {
   }
 
   try {
-    const result = await pool.query("SELECT * FROM feedbackEntryViewer ORDER BY created_at DESC");
+    const result = await pool.query(
+      `SELECT * FROM feedback_entry ORDER BY created_at DESC`
+    );
     return NextResponse.json(result.rows);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

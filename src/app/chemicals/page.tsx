@@ -20,20 +20,22 @@ export default function ChemicalsPage() {
   useEffect(() => {
     fetch("/api/chemicals")
       .then((res) => res.json())
-      .then((data) => Array.isArray(data) ? setChemicals(data) : []);
+      .then((data) => {
+        if (Array.isArray(data)) setChemicals(data);
+      });
   }, []);
 
   const handleEditChange = (id: number, field: string, value: any) => {
     setEditing((prev) => ({
       ...prev,
-      [id]: { ...prev[id], [field]: value }
+      [id]: { ...prev[id], [field]: value },
     }));
   };
 
   const handleImageChange = (id: number, file: File | null) => {
     setEditing((prev) => ({
       ...prev,
-      [id]: { ...prev[id], image: file || undefined }
+      [id]: { ...prev[id], image: file || undefined },
     }));
   };
 
@@ -73,7 +75,7 @@ export default function ChemicalsPage() {
 
     if (res.ok) {
       const updated = await res.json();
-      setChemicals((prev) => prev.map((c) => c.id === id ? updated : c));
+      setChemicals((prev) => prev.map((c) => (c.id === id ? updated : c)));
       setEditing((prev) => {
         const { [id]: _, ...rest } = prev;
         return rest;
@@ -95,47 +97,44 @@ export default function ChemicalsPage() {
         <h2 className="text-lg font-semibold mb-2">Add New Chemical</h2>
         <form
           className="space-y-2"
-         onSubmit={async (e) => {
-  e.preventDefault();
+          onSubmit={async (e) => {
+            e.preventDefault();
 
-  const form = e.target as HTMLFormElement;
-  const formData = new FormData(form);
-  let image_url = "";
+            const form = e.target as HTMLFormElement;
+            const formData = new FormData(form);
+            let image_url = "";
 
-  // ✅ Handle image upload
-  const imageFile = formData.get("image") as File;
-  if (imageFile && imageFile.size > 0) {
-    const upload = new FormData();
-    upload.append("file", imageFile);
-    const res = await fetch("/api/uploads", {
-      method: "POST",
-      body: upload,
-    });
-    const data = await res.json();
-    image_url = data.url;
-  }
+            const imageFile = formData.get("image") as File;
+            if (imageFile && imageFile.size > 0) {
+              const upload = new FormData();
+              upload.append("file", imageFile);
+              const res = await fetch("/api/uploads", {
+                method: "POST",
+                body: upload,
+              });
+              const data = await res.json();
+              image_url = data.url;
+            }
 
-  // ✅ Now submit the chemical with image_url
-  const res = await fetch("/api/chemicals", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      name: formData.get("name"),
-      purpose: formData.get("purpose"),
-      purchase_link: formData.get("purchase_link"),
-      notes: formData.get("notes"),
-      in_use: true,
-      image_url,
-    }),
-  });
+            const res = await fetch("/api/chemicals", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                name: formData.get("name"),
+                purpose: formData.get("purpose"),
+                purchase_link: formData.get("purchase_link"),
+                notes: formData.get("notes"),
+                in_use: true,
+                image_url,
+              }),
+            });
 
-  if (res.ok) {
-    const newChem = await res.json();
-    setChemicals((prev) => [newChem, ...prev]);
-    form.reset();
-  }
-}}
-
+            if (res.ok) {
+              const newChem = await res.json();
+              setChemicals((prev) => [newChem, ...prev]);
+              form.reset();
+            }
+          }}
         >
           <input type="text" name="name" placeholder="Name" required className="border p-1 w-full" />
           <input type="text" name="purpose" placeholder="Purpose" className="border p-1 w-full" />
@@ -150,7 +149,6 @@ export default function ChemicalsPage() {
 
       <div className="p-6">
         <h1 className="text-xl font-bold mb-4">Chemical Inventory</h1>
-
         <ul className="space-y-4">
           {chemicals.map((chem) => {
             const edit = editing[chem.id] || {};
@@ -167,8 +165,6 @@ export default function ChemicalsPage() {
                 </div>
 
                 <div className={`flex flex-col ${chem.image_url ? "md:flex-row" : ""} gap-4`}>
-
-                  {/* Image on the LEFT */}
                   {chem.image_url && (
                     <div className="flex-shrink-0">
                       <img
