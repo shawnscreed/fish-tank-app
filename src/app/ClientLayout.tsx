@@ -13,31 +13,36 @@ interface ClientLayoutProps {
   user?: {
     id: number;
     email: string;
-    role: "user" | "admin" | "super_admin";
+   role: "user" | "admin" | "super_admin" | "sub_admin" | "beta_user";
     name?: string;
   } | null;
 }
 
 export default function ClientLayout({ children, user }: ClientLayoutProps) {
   const menuItems: MenuItem[] = [
-    { name: "Dashboard", href: "/" },
-    { name: "Fish", href: "/fish" },
-    { name: "Plant", href: "/plant" },
+    { name: "Dashboard", href: "/dashboard" },
     { name: "Coral", href: "/coral" },
-    { name: "Inverts", href: "/inverts" },
     { name: "Tank", href: "/tank" },
     { name: "Work", href: "/work" },
     { name: "Chemicals", href: "/chemicals" },
-    { name: "Testpage2", href: "/testpage2" },
   ];
 
-  const adminItems: MenuItem[] =
+  const adminPages: MenuItem[] =
     user?.role === "admin" || user?.role === "super_admin"
       ? [
+          { name: "Fish", href: "/fish" },
+          { name: "Plant", href: "/plant" },
+          { name: "Inverts", href: "/inverts" },
+        ]
+      : [];
+
+  const adminTools: MenuItem[] =
+    user?.role === "admin" || user?.role === "super_admin"
+      ? [
+          { name: "User Accounts", href: "/admin/user-account-manager" },
+          { name: "Role Editor", href: "/admin/role-editor" },
           { name: "Referral Codes", href: "/admin/referral-code-manager" },
           { name: "Feedback Entries", href: "/admin/feedback-entry-viewer" },
-          { name: "Role Editor", href: "/admin/role-editor" },
-          { name: "User Accounts", href: "/admin/user-account-manager" },
         ]
       : [];
 
@@ -54,12 +59,26 @@ export default function ClientLayout({ children, user }: ClientLayoutProps) {
                 </Link>
               </li>
             ))}
-            {adminItems.length > 0 && (
+
+            {adminPages.length > 0 && (
+              <>
+                <li className="mt-4 text-sm text-gray-500 uppercase">Admin Pages</li>
+                {adminPages.map((item) => (
+                  <li key={item.href}>
+                    <Link href={item.href} className="text-blue-700 hover:underline">
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </>
+            )}
+
+            {adminTools.length > 0 && (
               <>
                 <li className="mt-4 text-sm text-gray-500 uppercase">Admin Tools</li>
-                {adminItems.map((item) => (
+                {adminTools.map((item) => (
                   <li key={item.href}>
-                    <Link href={item.href} className="text-purple-600 hover:underline">
+                    <Link href={item.href} className="text-purple-700 hover:underline">
                       {item.name}
                     </Link>
                   </li>
@@ -86,6 +105,7 @@ export default function ClientLayout({ children, user }: ClientLayoutProps) {
           )}
         </div>
       </aside>
+
       <main className="flex-1 p-6 bg-white">{children}</main>
     </div>
   );

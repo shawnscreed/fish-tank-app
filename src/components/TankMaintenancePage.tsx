@@ -1,22 +1,15 @@
+// components/TankMaintenancePage.tsx
+"use client";
+
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { getUserFromCookies } from "@/lib/auth";
-import ClientLayout from "@/app/ClientLayout";
 
-export default async function MaintenanceLogPageWrapper() {
-  const user = await getUserFromCookies();
-
-  return <MaintenanceLogPage user={user} />;
-}
-
-function MaintenanceLogPage({ user }: { user: any }) {
+export default function MaintenanceLogClient() {
   const { id } = useParams();
-
   const [waterChanges, setWaterChanges] = useState<any[]>([]);
   const [chemicals, setChemicals] = useState<any[]>([]);
   const [allChemicals, setAllChemicals] = useState<any[]>([]);
-
   const [changePercent, setChangePercent] = useState(0);
   const [changeNotes, setChangeNotes] = useState("");
 
@@ -65,77 +58,63 @@ function MaintenanceLogPage({ user }: { user: any }) {
   };
 
   return (
-    <ClientLayout user={user}>
-      <div className="p-6">
-        <h1 className="text-xl font-bold mb-4">Tank #{id} Maintenance Log</h1>
+    <div className="p-6">
+      <h1 className="text-xl font-bold mb-4">Tank #{id} Maintenance Log</h1>
 
-        {/* Water Change Section */}
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold">Water Changes</h2>
-          <p className="text-sm text-gray-600 mb-2">Log partial/full water changes for this tank.</p>
-
-          <div className="bg-gray-100 p-4 rounded shadow mb-4">
-            <input type="number" value={changePercent} onChange={(e) => setChangePercent(Number(e.target.value))} placeholder="% changed" className="border p-1 mr-2 w-28" />
-            <input type="text" value={changeNotes} onChange={(e) => setChangeNotes(e.target.value)} placeholder="Notes" className="border p-1 mr-2 w-64" />
-            <button onClick={addWaterChange} className="bg-blue-600 text-white px-3 py-1 rounded">Add</button>
-          </div>
-
-          <ul className="text-sm text-gray-800">
-            {waterChanges.map((wc, index) => (
-              <li key={index} className="mb-1">
-                {wc.percent_changed.toFixed(2)}% on {new Date(wc.change_date).toLocaleDateString()} — {wc.notes || "No notes"}
-              </li>
-            ))}
-          </ul>
+      {/* Water Changes */}
+      <div className="mb-6">
+        <h2 className="text-lg font-semibold">Water Changes</h2>
+        <div className="bg-gray-100 p-4 rounded shadow mb-4">
+          <input type="number" value={changePercent} onChange={(e) => setChangePercent(Number(e.target.value))} placeholder="% changed" className="border p-1 mr-2 w-28" />
+          <input type="text" value={changeNotes} onChange={(e) => setChangeNotes(e.target.value)} placeholder="Notes" className="border p-1 mr-2 w-64" />
+          <button onClick={addWaterChange} className="bg-blue-600 text-white px-3 py-1 rounded">Add</button>
         </div>
+        <ul className="text-sm text-gray-800">
+          {waterChanges.map((wc, index) => (
+            <li key={index} className="mb-1">
+             {Number(wc.percent_changed).toFixed(2)}% on {new Date(wc.change_date).toLocaleDateString()} — {wc.notes || "No notes"}
 
-        {/* Chemical Addition Section */}
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold">Chemical Additions</h2>
-          <p className="text-sm text-gray-600 mb-2">Track any dosing or chemical treatments.</p>
+            </li>
+          ))}
+        </ul>
+      </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full border text-sm">
-              <thead>
-                <tr className="bg-gray-200">
-                  <th className="border px-2 py-1 text-left">Chemical</th>
-                  <th className="border px-2 py-1 text-left">Date</th>
-                  <th className="border px-2 py-1 text-left">Amount</th>
-                  <th className="border px-2 py-1 text-left">Notes</th>
+      {/* Chemical Additions */}
+      <div className="mb-6">
+        <h2 className="text-lg font-semibold">Chemical Additions</h2>
+        <div className="overflow-x-auto border rounded">
+          <table className="min-w-full text-sm text-left">
+            <thead className="bg-gray-100 border-b">
+              <tr>
+                <th className="border px-3 py-2">Chemical</th>
+                <th className="border px-3 py-2">Date</th>
+                <th className="border px-3 py-2">Amount</th>
+                <th className="border px-3 py-2">Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {chemicals.map((chem) => (
+                <tr key={chem.id} className="hover:bg-gray-50">
+                  <td className="border px-3 py-2">{chem.chemical_name}</td>
+                  <td className="border px-3 py-2">{new Date(chem.added_at).toLocaleDateString()}</td>
+                  <td className="border px-3 py-2">
+                    <input className="w-full border rounded px-2 py-1" value={chem.amount} onChange={(e) => updateChemicalField(chem.id, "amount", e.target.value)} />
+                  </td>
+                  <td className="border px-3 py-2">
+                    <input className="w-full border rounded px-2 py-1" value={chem.notes || ""} onChange={(e) => updateChemicalField(chem.id, "notes", e.target.value)} />
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {chemicals.map((chem) => (
-                  <tr key={chem.id}>
-                    <td className="border px-2 py-1">{chem.chemical_name}</td>
-                    <td className="border px-2 py-1">{new Date(chem.added_at).toLocaleDateString()}</td>
-                    <td className="border px-2 py-1">
-                      <input
-                        className="w-full border p-1"
-                        value={chem.amount}
-                        onChange={(e) => updateChemicalField(chem.id, "amount", e.target.value)}
-                      />
-                    </td>
-                    <td className="border px-2 py-1">
-                      <input
-                        className="w-full border p-1"
-                        value={chem.notes || ""}
-                        onChange={(e) => updateChemicalField(chem.id, "notes", e.target.value)}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="mb-6">
-          <Link href={`/work/${id}`} className="text-blue-600 underline hover:text-blue-800">
-            ← Back to Tank Details
-          </Link>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
-    </ClientLayout>
+
+      <div className="mb-6">
+        <Link href={`/work/${id}`} className="text-blue-600 underline hover:text-blue-800">
+          ← Back to Tank Details
+        </Link>
+      </div>
+    </div>
   );
 }
