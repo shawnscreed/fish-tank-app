@@ -18,7 +18,8 @@ const menuItems: MenuItem[] = [
   { name: "Inverts", href: "/inverts" },
   { name: "Tank", href: "/tank" },
   { name: "Work", href: "/work" },
-   { name: "Chemicals", href: "/chemicals" }, 
+   { name: "Chemicals", href: "/chemicals" },
+  { name: 'Testpage2', href: '/testpage2' }, 
 ];
 
 

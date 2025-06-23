@@ -1,5 +1,3 @@
-
-
 // scripts/createResource.js
 const fs = require('fs');
 const path = require('path');
@@ -19,7 +17,6 @@ const pascalCase = resourceName
 
 const { Pool } = require('pg');
 
-// Read from .env.local
 require('dotenv').config({ path: path.join(__dirname, '..', '.env.local') });
 
 const db = new Pool({
@@ -56,19 +53,64 @@ async function scaffoldMissingTables() {
   }
 }
 
-// --- Create page and API directories ---
 const baseDir = path.join(__dirname, '..', 'src', 'app', resourceName);
 const apiDir = path.join(__dirname, '..', 'src', 'app', 'api', resourceName);
 const detailDir = path.join(baseDir, '[id]');
 const apiDetailDir = path.join(apiDir, '[id]');
 
-// --- Create the files ---
 const files = [
+// POST /api/[resource] (create)
+{
+  path: path.join(apiDir, 'create.ts'),
+  content: `import { NextRequest, NextResponse } from 'next/server';
+import pool from '@/lib/db';
+
+export async function POST(req: NextRequest) {
+  const body = await req.json();
+  const keys = Object.keys(body);
+  const values = Object.values(body);
+
+  if (!keys.length) {
+    return NextResponse.json({ error: 'No data provided' }, { status: 400 });
+  }
+
+  const columns = keys.join(', ');
+  const placeholders = keys.map((_, i) => '$' + (i + 1)).join(', ');
+
+  try {
+    const result = await pool.query(
+      \`INSERT INTO ${resourceName} (\${columns}) VALUES (\${placeholders}) RETURNING *\`,
+      values
+    );
+    return NextResponse.json(result.rows[0]);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}`
+},
+// DELETE /api/[resource]/[id]
+{
+  path: path.join(apiDetailDir, 'delete.ts'),
+  content: `import { NextRequest, NextResponse } from 'next/server';
+import pool from '@/lib/db';
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    await pool.query('DELETE FROM ${resourceName} WHERE id = $1', [params.id]);
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}`
+},
+
   {
     path: path.join(baseDir, 'page.tsx'),
     content: `"use client";
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 
 export default function ${pascalCase}Page() {
   const [items, setItems] = useState<any[]>([]);
@@ -110,144 +152,66 @@ export default function ${pascalCase}Page() {
   {
     path: path.join(detailDir, 'page.tsx'),
     content: `"use client";
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useForm } from "react-hook-form";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function ${pascalCase}DetailPage({ params }: { params: { id: string } }) {
-  const [data, setData] = useState<any>(null);
-  const [form, setForm] = useState<any>({});
+  const { register, handleSubmit, reset } = useForm();
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    fetch('/api/${resourceName}/' + params.id)
-      .then(res => res.json())
-      .then(data => {
-        setData(data);
-        setForm(data);
-      });
-  }, [params.id]);
+    fetch("/api/${resourceName}/" + params.id)
+      .then((res) => res.json())
+      .then((data) => {
+        reset(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, [params.id, reset]);
 
-  const handleChange = (e: any) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleSave = async () => {
-    const res = await fetch('/api/${resourceName}/' + params.id, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form)
+  const onSubmit = async (formData: any) => {
+    const res = await fetch("/api/${resourceName}/" + params.id, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
     });
-    if (res.ok) router.refresh();
+
+    if (res.ok) {
+      router.refresh();
+    }
   };
 
-  if (!data) return <p>Loading...</p>;
+  if (loading) return <p>Loading...</p>;
 
   return (
     <div>
       <h1 className="text-xl font-bold mb-4">${pascalCase} Detail</h1>
-      <div className="grid gap-2">
-        {Object.entries(form).map(([key, value]) => (
-          <div key={key}>
-            <label className="block text-sm font-medium">{key}</label>
-            <input
-              name={key}
-              value={value || ''}
-              onChange={handleChange}
-              className="border px-2 py-1 w-full"
-            />
-          </div>
-        ))}
-        <button onClick={handleSave} className="bg-blue-600 text-white px-4 py-2 rounded mt-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 max-w-xl">
+        {Object.keys(register()).length === 0 && <p>No editable fields available.</p>}
+        {Object.keys(register()).length > 0 &&
+          Object.keys(register()).map((key) => (
+            <div key={key}>
+              <label className="block text-sm font-medium mb-1">{key}</label>
+              <input
+                {...register(key)}
+                className="border rounded w-full p-2"
+                placeholder={key}
+              />
+            </div>
+          ))}
+
+        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded mt-2">
           Save Changes
         </button>
-      </div>
+      </form>
     </div>
   );
 }`
-  },
- // route.ts (collection GET)
-{
-  path: path.join(apiDir, 'route.ts'),
-  content: `import { NextResponse } from 'next/server';
-import pool from '../../../lib/db';
-
-
-export async function GET() {
-  try {
-    const result = await pool.query('SELECT * FROM ${resourceName} ORDER BY created_at DESC LIMIT 50');
-    return NextResponse.json(result.rows);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
   }
-}`
-},
-  {
-    path: path.join(detailDir, 'page.tsx'),
-    content: `export default function ${pascalCase}DetailPage({ params }: { params: { id: string } }) {
-  return <div>${pascalCase} Detail for ID: {params.id}</div>;
-}`
-  },
-// [id]/route.ts (GET and PUT by ID)
-{
-  path: path.join(apiDetailDir, 'route.ts'),
-  content: `import { NextRequest, NextResponse } from 'next/server';
-import pool from '@/lib/db';
-
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const result = await pool.query('SELECT * FROM ${resourceName} WHERE id = $1', [params.id]);
-    if (result.rows.length === 0) {
-      return NextResponse.json({ error: '${pascalCase} not found' }, { status: 404 });
-    }
-    return NextResponse.json(result.rows[0]);
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
-
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  const body = await req.json();
-
-  const allowedList = ${
-    JSON.stringify({
-      users: ['name', 'email', 'status'],
-      agents: ['name', 'license_number', 'email'],
-      orders: ['address', 'status', 'delivery_date'],
-      clients: ['first', 'last', 'email', 'mobilephone'],
-   }['${resourceName}'] || [])};
-
-  const allowedFields = Object.keys(body).filter(key => allowedList.includes(key));
-
-  if (allowedFields.length === 0) {
-    return NextResponse.json({ error: 'No valid fields provided' }, { status: 400 });
-  }
-
-  const updates = allowedFields.map((key, idx) => \\\`\${key} = \\\$\{idx + 1}\\\`).join(', ');
-
-  const values = allowedFields.map((key) => body[key]);
-
-  try {
-    await pool.query(
-     \`UPDATE ${resourceName} SET \\\${updates} WHERE id = \\\${allowedFields.length + 1}\`
-
-      [...values, params.id]
-    );
-    return NextResponse.json({ message: '${pascalCase} updated' });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}`
-}
-
 ];
 
-// --- Write the files ---
 files.forEach(file => {
   fs.mkdirSync(path.dirname(file.path), { recursive: true });
   fs.writeFileSync(file.path, file.content, 'utf8');
@@ -255,7 +219,7 @@ files.forEach(file => {
 
 // --- Update the sidebar in ClientLayout.tsx ---
 const layoutPath = path.join(__dirname, '..', 'src', 'app', 'ClientLayout.tsx');
-const newMenuItem = `  { label: '${pascalCase}', path: '/${resourceName}' },`;
+const newMenuItem = `  { name: '${pascalCase}', href: '/${resourceName}' },`;
 
 if (!fs.existsSync(layoutPath)) {
   console.error('❌ ClientLayout.tsx not found. Sidebar not updated.');
@@ -264,25 +228,17 @@ if (!fs.existsSync(layoutPath)) {
 
 let layoutContent = fs.readFileSync(layoutPath, 'utf8');
 
-
-// Only add if it doesn't already exist
-const menuRegex = /const menuItems\s*=\s*\[\s*([\s\S]*?)\s*\]/m;
-
-if (menuRegex.test(layoutContent) && !layoutContent.includes(newMenuItem.trim())) {
+// Matches: const menuItems = [ or const menuItems: MenuItem[] = [
+const menuRegex = /const menuItems.*=\s*\[\s*([\s\S]*?)\s*\]/m;
 
 if (menuRegex.test(layoutContent) && !layoutContent.includes(newMenuItem)) {
   layoutContent = layoutContent.replace(menuRegex, (match, items) => {
-    const updatedItems = items.trimEnd().replace(/,\s*$/, ''); // remove trailing comma
-    return `const menuItems = [\n${updatedItems},\n${newMenuItem}\n]`;
+    const updatedItems = items.trimEnd().replace(/,\s*$/, '');
+    return match.replace(items, `${updatedItems},\n${newMenuItem}`);
   });
 
   fs.writeFileSync(layoutPath, layoutContent, 'utf8');
-  console.log(`✅ Added '${pascalCase}' to ClientLayout sidebar.`);
+  console.log(`✅ Injected '${pascalCase}' into ClientLayout.tsx sidebar.`);
 } else {
   console.log(`ℹ️ '${pascalCase}' already exists in ClientLayout or menu not found.`);
-}
-if (resourceName === '--all') {
-  scaffoldMissingTables();
-  return;
-}
 }

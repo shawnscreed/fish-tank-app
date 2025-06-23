@@ -1,0 +1,18 @@
+import { NextResponse } from "next/server";
+import pool from "@/lib/db";
+import { getUserFromRequest } from "@/lib/auth"; // make sure you have this helper
+
+export async function GET(req: Request) {
+  const user = await getUserFromRequest(req);
+
+  if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
+  try {
+    const result = await pool.query("SELECT * FROM feedbackEntryViewer ORDER BY created_at DESC");
+    return NextResponse.json(result.rows);
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
