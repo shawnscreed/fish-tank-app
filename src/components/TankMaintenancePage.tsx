@@ -1,12 +1,25 @@
-// components/TankMaintenancePage.tsx
 "use client";
 
-import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 
-export default function MaintenanceLogClient() {
-  const { id } = useParams();
+interface Tank {
+  id: number;
+  name: string;
+  water_type: string;
+  gallons: number;
+}
+
+export default function TankMaintenancePage({
+  userId,
+  tankId,
+}: {
+  userId: number;
+  tankId: number;
+}) {
+  const id = tankId;
+  const [tank, setTank] = useState<Tank | null>(null);
+  const [loading, setLoading] = useState(true);
   const [waterChanges, setWaterChanges] = useState<any[]>([]);
   const [chemicals, setChemicals] = useState<any[]>([]);
   const [allChemicals, setAllChemicals] = useState<any[]>([]);
@@ -14,13 +27,26 @@ export default function MaintenanceLogClient() {
   const [changeNotes, setChangeNotes] = useState("");
 
   useEffect(() => {
-    fetch(`/api/work/${id}/waterchange`).then(res => res.json()).then(setWaterChanges);
-    fetch(`/api/work/${id}/chemical`).then(res => res.json()).then(data => {
-      if (Array.isArray(data)) setChemicals(data);
-      else setChemicals([]);
-    });
-    fetch("/api/chemicals").then(res => res.json()).then(setAllChemicals);
-  }, [id]);
+    if (!id) return;
+
+    fetch(`/api/tanks/${id}?user_id=${userId}`)
+      .then((res) => res.json())
+      .then(setTank)
+      .catch(() => setTank(null));
+
+    fetch(`/api/work/${id}/waterchange`).then((res) =>
+      res.json().then(setWaterChanges)
+    );
+    fetch(`/api/work/${id}/chemical`).then((res) =>
+      res.json().then((data) => {
+        if (Array.isArray(data)) setChemicals(data);
+        else setChemicals([]);
+      })
+    );
+    fetch("/api/chemicals").then((res) => res.json().then(setAllChemicals));
+
+    setLoading(false);
+  }, [id, userId]);
 
   const addWaterChange = async () => {
     const res = await fetch(`/api/work/${id}/waterchange`, {
@@ -36,8 +62,12 @@ export default function MaintenanceLogClient() {
     }
   };
 
-  const updateChemicalField = async (chemicalId: number, field: string, value: string) => {
-    const target = chemicals.find(c => c.id === chemicalId);
+  const updateChemicalField = async (
+    chemicalId: number,
+    field: string,
+    value: string
+  ) => {
+    const target = chemicals.find((c) => c.id === chemicalId);
     if (!target) return;
     const updated = { ...target, [field]: value };
 
@@ -53,27 +83,49 @@ export default function MaintenanceLogClient() {
 
     if (res.ok) {
       const saved = await res.json();
-      setChemicals(chemicals.map(c => c.id === saved.id ? saved : c));
+      setChemicals(
+        chemicals.map((c) => (c.id === saved.id ? saved : c))
+      );
     }
   };
 
+  if (loading || !tank) return <div className="p-6">Loading tank...</div>;
+
   return (
     <div className="p-6">
-      <h1 className="text-xl font-bold mb-4">Tank #{id} Maintenance Log</h1>
+      <h1 className="text-xl font-bold mb-4">Maintenance Log for {tank.name}</h1>
 
       {/* Water Changes */}
       <div className="mb-6">
         <h2 className="text-lg font-semibold">Water Changes</h2>
         <div className="bg-gray-100 p-4 rounded shadow mb-4">
-          <input type="number" value={changePercent} onChange={(e) => setChangePercent(Number(e.target.value))} placeholder="% changed" className="border p-1 mr-2 w-28" />
-          <input type="text" value={changeNotes} onChange={(e) => setChangeNotes(e.target.value)} placeholder="Notes" className="border p-1 mr-2 w-64" />
-          <button onClick={addWaterChange} className="bg-blue-600 text-white px-3 py-1 rounded">Add</button>
+          <input
+            type="number"
+            value={changePercent}
+            onChange={(e) => setChangePercent(Number(e.target.value))}
+            placeholder="% changed"
+            className="border p-1 mr-2 w-28"
+          />
+          <input
+            type="text"
+            value={changeNotes}
+            onChange={(e) => setChangeNotes(e.target.value)}
+            placeholder="Notes"
+            className="border p-1 mr-2 w-64"
+          />
+          <button
+            onClick={addWaterChange}
+            className="bg-blue-600 text-white px-3 py-1 rounded"
+          >
+            Add
+          </button>
         </div>
         <ul className="text-sm text-gray-800">
           {waterChanges.map((wc, index) => (
             <li key={index} className="mb-1">
-             {Number(wc.percent_changed).toFixed(2)}% on {new Date(wc.change_date).toLocaleDateString()} — {wc.notes || "No notes"}
-
+              {Number(wc.percent_changed).toFixed(2)}% on{" "}
+              {new Date(wc.change_date).toLocaleDateString()} —{" "}
+              {wc.notes || "No notes"}
             </li>
           ))}
         </ul>
@@ -96,12 +148,26 @@ export default function MaintenanceLogClient() {
               {chemicals.map((chem) => (
                 <tr key={chem.id} className="hover:bg-gray-50">
                   <td className="border px-3 py-2">{chem.chemical_name}</td>
-                  <td className="border px-3 py-2">{new Date(chem.added_at).toLocaleDateString()}</td>
                   <td className="border px-3 py-2">
-                    <input className="w-full border rounded px-2 py-1" value={chem.amount} onChange={(e) => updateChemicalField(chem.id, "amount", e.target.value)} />
+                    {new Date(chem.added_at).toLocaleDateString()}
                   </td>
                   <td className="border px-3 py-2">
-                    <input className="w-full border rounded px-2 py-1" value={chem.notes || ""} onChange={(e) => updateChemicalField(chem.id, "notes", e.target.value)} />
+                    <input
+                      className="w-full border rounded px-2 py-1"
+                      value={chem.amount}
+                      onChange={(e) =>
+                        updateChemicalField(chem.id, "amount", e.target.value)
+                      }
+                    />
+                  </td>
+                  <td className="border px-3 py-2">
+                    <input
+                      className="w-full border rounded px-2 py-1"
+                      value={chem.notes || ""}
+                      onChange={(e) =>
+                        updateChemicalField(chem.id, "notes", e.target.value)
+                      }
+                    />
                   </td>
                 </tr>
               ))}
@@ -111,7 +177,10 @@ export default function MaintenanceLogClient() {
       </div>
 
       <div className="mb-6">
-        <Link href={`/work/${id}`} className="text-blue-600 underline hover:text-blue-800">
+        <Link
+          href={`/dashboard/tank/${id}`}
+          className="text-blue-600 underline hover:text-blue-800"
+        >
           ← Back to Tank Details
         </Link>
       </div>

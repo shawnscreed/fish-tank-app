@@ -13,8 +13,8 @@ interface JWTUser {
   name?: string;
 }
 
-export default async function TankPage() {
-  const cookieStore = await cookies();
+export default async function TankPage({ params }: { params: { id: string } }) {
+  const cookieStore = await cookies(); // ✅ FIXED
   const token = cookieStore.get("token")?.value;
 
   if (!token) redirect("/login");
@@ -31,10 +31,12 @@ export default async function TankPage() {
     redirect("/login");
   }
 
+  const tankId = Number(params.id);
+
   return (
     <ClientLayout user={user}>
       <div className="p-6">
-        <TankDetail userId={user.id} />
+        <TankDetail userId={user.id} tankId={tankId} />
       </div>
     </ClientLayout>
   );

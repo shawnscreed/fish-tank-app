@@ -1,3 +1,5 @@
+// 📄 Page: /admin/feedback-entry-viewer
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -12,19 +14,34 @@ interface FeedbackEntry {
 
 export default function AdminFeedbackEntryViewerPage() {
   const [data, setData] = useState<FeedbackEntry[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/feedback-entry-viewer")
       .then((res) => res.json())
-      .then(setData)
-      .catch(console.error);
+      .then((json) => {
+        // Normalize the response to ensure it's always an array
+        if (Array.isArray(json)) {
+          setData(json);
+        } else if (Array.isArray(json.data)) {
+          setData(json.data);
+        } else {
+          setError("Unexpected response format.");
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load feedback:", err);
+        setError("Failed to load feedback.");
+      });
   }, []);
 
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">Admin – Feedback Viewer</h1>
 
-      {data.length === 0 ? (
+      {error && <p className="text-red-600">{error}</p>}
+
+      {!error && data.length === 0 ? (
         <p className="text-gray-600">No feedback found.</p>
       ) : (
         <div className="overflow-x-auto">
@@ -42,7 +59,9 @@ export default function AdminFeedbackEntryViewerPage() {
                 <tr key={entry.id} className="text-sm hover:bg-gray-50">
                   <td className="p-2 border">{entry.name || "Anonymous"}</td>
                   <td className="p-2 border">{entry.email || "N/A"}</td>
-                  <td className="p-2 border whitespace-pre-wrap">{entry.message}</td>
+                  <td className="p-2 border whitespace-pre-wrap">
+                    {entry.message}
+                  </td>
                   <td className="p-2 border">
                     {new Date(entry.created_at).toLocaleString()}
                   </td>

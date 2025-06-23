@@ -1,9 +1,9 @@
-// 📄 File: app/components/TankDetail.tsx
+
+// 📄 Page: /dashboard/tank/[id]
 
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
 import Link from "next/link";
 
 interface Tank {
@@ -17,6 +17,7 @@ interface WaterTest {
   created_at: string;
   ph: number;
   hardness: number;
+  temperature?: number;
   ammonia: number;
   nitrite: number;
   nitrate: number;
@@ -24,11 +25,16 @@ interface WaterTest {
   notes?: string;
 }
 
-export default function TankDetail({ userId }: { userId: number }) {
-  const params = useParams();
-  const tankId = parseInt(params?.id as string || "0");
-
+export default function TankDetail({
+  userId,
+  tankId,
+}: {
+  userId: number;
+  tankId: number;
+}) {
   const [tank, setTank] = useState<Tank | null>(null);
+  const [name, setName] = useState("");
+  const [gallons, setGallons] = useState(0);
   const [latestTest, setLatestTest] = useState<WaterTest | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -42,8 +48,10 @@ export default function TankDetail({ userId }: { userId: number }) {
   const [availableInverts, setAvailableInverts] = useState<any[]>([]);
   const [availableCorals, setAvailableCorals] = useState<any[]>([]);
 
-  useEffect(() => {
-    async function loadTankDetails() {
+  const [alerts, setAlerts] = useState<string[]>([]);
+
+  const loadTankDetails = async () => {
+    try {
       const responses = await Promise.all([
         fetch(`/api/tanks/${tankId}?user_id=${userId}`),
         fetch(`/api/tanks/${tankId}/water-latest`),
@@ -54,12 +62,27 @@ export default function TankDetail({ userId }: { userId: number }) {
         fetch(`/api/fish`),
         fetch(`/api/plant`),
         fetch(`/api/inverts`),
-        fetch(`/api/coral`)
+        fetch(`/api/coral`),
       ]);
 
-      const [tankRes, testRes, fishRes, plantRes, invertRes, coralRes, fishList, plantList, invertList, coralList] = responses;
+      const [
+        tankRes,
+        testRes,
+        fishRes,
+        plantRes,
+        invertRes,
+        coralRes,
+        fishList,
+        plantList,
+        invertList,
+        coralList,
+      ] = responses;
 
-      setTank(await tankRes.json());
+      const tankData = await tankRes.json();
+      setTank(tankData);
+      setName(tankData.name || "");
+      setGallons(tankData.gallons || 0);
+
       setLatestTest(testRes.ok ? await testRes.json() : null);
       setFish(fishRes.ok ? await fishRes.json() : []);
       setPlants(plantRes.ok ? await plantRes.json() : []);
@@ -70,18 +93,68 @@ export default function TankDetail({ userId }: { userId: number }) {
       setAvailablePlants(plantList.ok ? await plantList.json() : []);
       setAvailableInverts(invertList.ok ? await invertList.json() : []);
       setAvailableCorals(coralList.ok ? await coralList.json() : []);
-
+    } catch (err) {
+      console.error("Failed to load tank data:", err);
+    } finally {
       setLoading(false);
     }
+  };
 
+  useEffect(() => {
     if (tankId) loadTankDetails();
+    const handleFocus = () => loadTankDetails();
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
   }, [tankId, userId]);
+
+  useEffect(() => {
+    if (!latestTest || fish.length === 0) return;
+
+    const newAlerts: string[] = [];
+
+    fish.forEach((f) => {
+      if (
+        f.ph_low !== null &&
+        f.ph_high !== null &&
+        (latestTest.ph < f.ph_low || latestTest.ph > f.ph_high)
+      ) {
+        newAlerts.push(`${f.name} is outside its preferred pH range.`);
+      }
+
+      if (
+        f.temp_low !== null &&
+        f.temp_high !== null &&
+        latestTest.temperature !== undefined &&
+        (latestTest.temperature < f.temp_low || latestTest.temperature > f.temp_high)
+      ) {
+        newAlerts.push(`${f.name} is outside its preferred temperature range.`);
+      }
+
+      if (
+        f.hardness_low !== null &&
+        f.hardness_high !== null &&
+        (latestTest.hardness < f.hardness_low || latestTest.hardness > f.hardness_high)
+      ) {
+        newAlerts.push(`${f.name} is outside its preferred hardness range.`);
+      }
+    });
+
+    setAlerts(newAlerts);
+  }, [latestTest, fish]);
+
+  const saveTank = async () => {
+    await fetch(`/api/tanks/${tankId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, gallons }),
+    });
+  };
 
   const typeToIdKey: Record<string, string> = {
     fish: "fish_id",
     plants: "plant_id",
     inverts: "invert_id",
-    corals: "coral_id"
+    corals: "coral_id",
   };
 
   const assignItem = async (type: string, itemId: number) => {
@@ -90,13 +163,18 @@ export default function TankDetail({ userId }: { userId: number }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ [typeToIdKey[type]]: itemId }),
     });
-    location.reload();
+    loadTankDetails();
   };
 
-  const deleteItem = async (type: string, itemId: number, assignmentId?: number) => {
-    const payload = type === "fish" || type === "plants"
-      ? { assignment_id: assignmentId }
-      : { [typeToIdKey[type]]: itemId };
+  const deleteItem = async (
+    type: string,
+    itemId: number,
+    assignmentId?: number
+  ) => {
+    const payload =
+      type === "fish" || type === "plants"
+        ? { assignment_id: assignmentId }
+        : { [typeToIdKey[type]]: itemId };
 
     await fetch(`/api/tanks/${tankId}/${type}`, {
       method: "DELETE",
@@ -104,7 +182,7 @@ export default function TankDetail({ userId }: { userId: number }) {
       body: JSON.stringify(payload),
     });
 
-    location.reload();
+    loadTankDetails();
   };
 
   const typeLabels: Record<string, string> = {
@@ -116,11 +194,15 @@ export default function TankDetail({ userId }: { userId: number }) {
 
   const renderSection = (type: string, list: any[], options: any[]) => (
     <div className="mb-8">
-      <h2 className="text-lg font-semibold mb-1 capitalize">{typeLabels[type]}</h2>
+      <h2 className="text-lg font-semibold mb-1 capitalize">
+        {typeLabels[type]}
+      </h2>
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          const id = parseInt((e.currentTarget as any)[`select_${type}`].value);
+          const id = parseInt(
+            (e.currentTarget as any)[`select_${type}`].value
+          );
           if (id) assignItem(type, id);
         }}
         className="mb-2"
@@ -128,10 +210,17 @@ export default function TankDetail({ userId }: { userId: number }) {
         <select name={`select_${type}`} className="border px-2 py-1 mr-2">
           <option value="">Select {typeLabels[type]}</option>
           {options.map((o) => (
-            <option key={o.id} value={o.id}>{o.name}</option>
+            <option key={o.id} value={o.id}>
+              {o.name}
+            </option>
           ))}
         </select>
-        <button type="submit" className="bg-green-600 text-white px-3 py-1 rounded">Assign</button>
+        <button
+          type="submit"
+          className="bg-green-600 text-white px-3 py-1 rounded"
+        >
+          Assign
+        </button>
       </form>
       {list.length === 0 ? (
         <p className="text-gray-600">No {typeLabels[type]} assigned yet.</p>
@@ -150,12 +239,20 @@ export default function TankDetail({ userId }: { userId: number }) {
             {list.map((item) => (
               <tr key={`${type}-${item.assignment_id ?? item.id}`}>
                 <td className="border px-2 py-1">{item.name}</td>
-                <td className="border px-2 py-1">{item.ph_low ?? "N/A"}–{item.ph_high ?? "N/A"}</td>
-                <td className="border px-2 py-1">{item.hardness_low ?? "N/A"}–{item.hardness_high ?? "N/A"}</td>
-                <td className="border px-2 py-1">{item.temp_low ?? "N/A"}–{item.temp_high ?? "N/A"}</td>
+                <td className="border px-2 py-1">
+                  {item.ph_low ?? "N/A"}–{item.ph_high ?? "N/A"}
+                </td>
+                <td className="border px-2 py-1">
+                  {item.hardness_low ?? "N/A"}–{item.hardness_high ?? "N/A"}
+                </td>
+                <td className="border px-2 py-1">
+                  {item.temp_low ?? "N/A"}–{item.temp_high ?? "N/A"}
+                </td>
                 <td className="border px-2 py-1 text-center">
                   <button
-                    onClick={() => deleteItem(type, item.id, item.assignment_id)}
+                    onClick={() =>
+                      deleteItem(type, item.id, item.assignment_id)
+                    }
                     className="text-red-600 underline"
                   >
                     Delete
@@ -173,33 +270,94 @@ export default function TankDetail({ userId }: { userId: number }) {
   if (!tank) return <p>Tank not found or access denied.</p>;
 
   return (
-    <div className="p-4">
-      <h1 className="text-2xl font-bold mb-2">Tank #{tank.id} Details</h1>
-      <p><strong>Water Type:</strong> {tank.water_type}<br /><strong>Gallons:</strong> {tank.gallons}</p>
+    <div className="p-4 max-w-3xl space-y-6">
+      {alerts.length > 0 && (
+        <div className="bg-red-100 border border-red-400 text-red-700 p-4 rounded mb-4">
+          <h2 className="font-bold mb-2">⚠️ Water Parameter Alerts</h2>
+          <ul className="list-disc ml-6">
+            {alerts.map((msg, idx) => (
+              <li key={idx}>{msg}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <h1 className="text-2xl font-bold">{name || `Unnamed Tank`}</h1>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-600">
+          Tank Name
+        </label>
+        <input
+          className="w-full px-3 py-2 border rounded"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onBlur={saveTank}
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-600">
+          Gallons
+        </label>
+        <input
+          type="number"
+          className="w-full px-3 py-2 border rounded"
+          value={gallons}
+          onChange={(e) => setGallons(Number(e.target.value))}
+          onBlur={saveTank}
+        />
+      </div>
+
+      <p>
+        <strong>Water Type:</strong> {tank.water_type}
+        <br />
+        <strong>Gallons:</strong> {gallons}
+      </p>
 
       <Link
-    href={`/dashboard/tank/${tankId}/water`}
-    className="block text-blue-600 underline hover:text-blue-800"
-  >
-    View & Log Water Tests
-  </Link>
-  <Link href={`/dashboard/tank/${tankId}/maintenance`}>
-    <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full sm:w-auto">
-      🧰 View Maintenance Logs
-    </button>
-  </Link>
+        href={`/dashboard/tank/${tankId}/water`}
+        className="block text-blue-600 underline hover:text-blue-800"
+      >
+        View & Log Water Tests
+      </Link>
+
+      <Link href={`/dashboard/tank/${tankId}/maintenance`}>
+        <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full sm:w-auto">
+          🧰 View Maintenance Logs
+        </button>
+      </Link>
 
       {latestTest && (
         <div className="bg-blue-50 border p-4 mt-4 rounded">
-          <h2 className="text-lg font-semibold mb-2">Most Recent Water Test</h2>
-          <p><strong>Date:</strong> {new Date(latestTest.created_at).toLocaleString()}</p>
-          <p><strong>pH:</strong> {latestTest.ph}</p>
-          <p><strong>Hardness:</strong> {latestTest.hardness}</p>
-          <p><strong>Ammonia:</strong> {latestTest.ammonia}</p>
-          <p><strong>Nitrite:</strong> {latestTest.nitrite}</p>
-          <p><strong>Nitrate:</strong> {latestTest.nitrate}</p>
-          <p><strong>Salinity:</strong> {latestTest.salinity ?? "N/A"}</p>
-          <p><strong>Notes:</strong> {latestTest.notes ?? "None"}</p>
+          <h2 className="text-lg font-semibold mb-2">
+            Most Recent Water Test
+          </h2>
+          <p>
+            <strong>Date:</strong>{" "}
+            {new Date(latestTest.created_at).toLocaleString()}
+          </p>
+          <p>
+            <strong>pH:</strong> {latestTest.ph}
+          </p>
+          <p>
+            <strong>Hardness:</strong> {latestTest.hardness}
+          </p>
+          <p>
+            <strong>Ammonia:</strong> {latestTest.ammonia}
+          </p>
+          <p>
+            <strong>Nitrite:</strong> {latestTest.nitrite}
+          </p>
+          <p>
+            <strong>Nitrate:</strong> {latestTest.nitrate}
+          </p>
+          <p>
+            <strong>Salinity:</strong> {latestTest.salinity ?? "N/A"}
+          </p>
+          <p>
+            <strong>Notes:</strong> {latestTest.notes ?? "None"}
+          </p>
         </div>
       )}
 
@@ -207,7 +365,8 @@ export default function TankDetail({ userId }: { userId: number }) {
         {renderSection("fish", fish, availableFish)}
         {renderSection("plants", plants, availablePlants)}
         {renderSection("inverts", inverts, availableInverts)}
-        {(tank.water_type === "salt" || tank.water_type === "brackish") && renderSection("corals", corals, availableCorals)}
+        {(tank.water_type === "salt" || tank.water_type === "brackish") &&
+          renderSection("corals", corals, availableCorals)}
       </div>
     </div>
   );

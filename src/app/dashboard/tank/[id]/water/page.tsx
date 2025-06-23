@@ -1,3 +1,5 @@
+// app/dashboard/tank/[id]/water/page.tsx
+
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { jwtVerify } from "jose";
@@ -13,8 +15,8 @@ interface JWTUser {
   name?: string;
 }
 
-export default async function Page() {
-  const cookieStore = await cookies();
+export default async function Page({ params }: { params: { id: string } }) {
+  const cookieStore = await cookies(); // ✅ Await here
   const token = cookieStore.get("token")?.value;
 
   if (!token) redirect("/login");
@@ -31,9 +33,11 @@ export default async function Page() {
     redirect("/login");
   }
 
+  const tankId = Number(params.id);
+
   return (
     <ClientLayout user={user}>
-      <WaterLogPage />
+      <WaterLogPage userId={user.id} tankId={tankId} />
     </ClientLayout>
   );
 }

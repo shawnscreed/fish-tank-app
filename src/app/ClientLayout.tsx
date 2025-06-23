@@ -25,6 +25,8 @@ export default function ClientLayout({ children, user }: ClientLayoutProps) {
     { name: "Tank", href: "/tank" },
     { name: "Work", href: "/work" },
     { name: "Chemicals", href: "/chemicals" },
+      { name: "Feedback", href: "/dashboard/feedback" },
+
   ];
 
   const adminPages: MenuItem[] =

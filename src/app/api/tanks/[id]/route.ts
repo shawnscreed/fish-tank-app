@@ -3,6 +3,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
+export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const { id } = await context.params;
+  const { name, gallons } = await req.json();
+
+  try {
+    const result = await pool.query(
+      `UPDATE "Tank" SET name = $1, gallons = $2 WHERE id = $3 RETURNING *`,
+      [name, gallons, id]
+    );
+
+    if (result.rowCount === 0) {
+      return NextResponse.json({ error: "Tank not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(result.rows[0]);
+  } catch (err) {
+    console.error("❌ Failed to update tank:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+
 export async function GET(_req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params; // ✅ MUST be awaited
   const userId = parseInt(_req.nextUrl.searchParams.get("user_id") || "0");

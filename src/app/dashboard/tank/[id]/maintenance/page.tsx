@@ -1,4 +1,5 @@
 // app/dashboard/tank/[id]/maintenance/page.tsx
+
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { jwtVerify } from "jose";
@@ -14,7 +15,7 @@ interface JWTUser {
   name?: string;
 }
 
-export default async function MaintenancePage() {
+export default async function MaintenancePage({ params }: { params: { id: string } }) {
   const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
 
@@ -31,7 +32,7 @@ export default async function MaintenancePage() {
 
   return (
     <ClientLayout user={user}>
-      <TankMaintenancePage />
+      <TankMaintenancePage userId={user.id} tankId={Number(params.id)} />
     </ClientLayout>
   );
 }

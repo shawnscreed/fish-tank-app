@@ -1,9 +1,14 @@
-// 📄 File: src/components/WaterLogPage.tsx
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+
+interface Tank {
+  id: number;
+  name: string;
+  water_type: string;
+  gallons: number;
+}
 
 interface WaterLog {
   id: number;
@@ -18,10 +23,14 @@ interface WaterLog {
   notes?: string;
 }
 
-export default function WaterLogPage() {
-  const params = useParams();
-  const tankId = useMemo(() => parseInt(params?.id as string || "0", 10), [params]);
-
+export default function WaterLogPage({
+  userId,
+  tankId,
+}: {
+  userId: number;
+  tankId: number;
+}) {
+  const [tank, setTank] = useState<Tank | null>(null);
   const [logs, setLogs] = useState<WaterLog[]>([]);
   const [form, setForm] = useState({
     ph: "",
@@ -30,61 +39,56 @@ export default function WaterLogPage() {
     nitrite: "",
     nitrate: "",
     salinity: "",
-    notes: ""
+    notes: "",
   });
 
   const [editingLog, setEditingLog] = useState<null | number>(null);
   const [editForm, setEditForm] = useState<Partial<WaterLog>>({});
 
   useEffect(() => {
-    if (!tankId) return;
+    if (!tankId || !userId) return;
+
+    fetch(`/api/tanks/${tankId}?user_id=${userId}`)
+      .then((res) => res.json())
+      .then(setTank)
+      .catch(() => setTank(null));
 
     fetch(`/api/tanks/${tankId}/water`)
-      .then(async (res) => {
-        if (!res.ok) {
-          console.error("Failed to fetch logs");
-          return;
-        }
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setLogs(data);
-        } else {
-          console.error("Invalid logs response format", data);
-          setLogs([]);
-        }
-      });
-  }, [tankId]);
+      .then((res) => res.json())
+      .then((data) => setLogs(Array.isArray(data) ? data : []));
+  }, [tankId, userId]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm((prev: typeof form) => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setEditForm((prev: Partial<WaterLog>) => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleEditChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setEditForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     const res = await fetch(`/api/tanks/${tankId}/water`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ph: form.ph ? parseFloat(form.ph) : null,
-        hardness: form.hardness ? parseFloat(form.hardness) : null,
-        ammonia: form.ammonia ? parseFloat(form.ammonia) : null,
-        nitrite: form.nitrite ? parseFloat(form.nitrite) : null,
-        nitrate: form.nitrate ? parseFloat(form.nitrate) : null,
+        ph: parseFloat(form.ph) || null,
+        hardness: parseFloat(form.hardness) || null,
+        ammonia: parseFloat(form.ammonia) || null,
+        nitrite: parseFloat(form.nitrite) || null,
+        nitrate: parseFloat(form.nitrate) || null,
         salinity: form.salinity ? parseFloat(form.salinity) : undefined,
-        notes: form.notes || undefined
-      })
+        notes: form.notes || undefined,
+      }),
     });
 
     if (res.ok) {
       const newLog = await res.json();
-      if (newLog && typeof newLog === "object") {
-        setLogs(prev => [newLog, ...prev]);
-      }
+      setLogs((prev) => [newLog, ...prev]);
       setForm({
         ph: "",
         hardness: "",
@@ -92,7 +96,7 @@ export default function WaterLogPage() {
         nitrite: "",
         nitrate: "",
         salinity: "",
-        notes: ""
+        notes: "",
       });
     } else {
       console.error("❌ Failed to submit log");
@@ -103,20 +107,18 @@ export default function WaterLogPage() {
     const res = await fetch(`/api/tanks/${tankId}/water/${logId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(editForm)
+      body: JSON.stringify(editForm),
     });
 
     if (res.ok) {
       const updated = await res.json();
-      setLogs((prev: WaterLog[]) => prev.map(log => (log.id === logId ? updated : log)));
+      setLogs((prev) => prev.map((log) => (log.id === logId ? updated : log)));
       setEditingLog(null);
       setEditForm({});
     } else {
       console.error("❌ Failed to update log");
     }
   };
-
-  if (!tankId || isNaN(tankId)) return <p>Invalid tank ID</p>;
 
   return (
     <div className="p-6">
@@ -125,18 +127,31 @@ export default function WaterLogPage() {
           ← Back to Tank
         </button>
       </Link>
-      
 
-      <h1 className="text-2xl font-bold mb-4">Water Logs for Tank #{tankId}</h1>
+      <h1 className="text-2xl font-bold mb-2">
+        Water Logs for {tank?.name ? `Tank "${tank.name}"` : `Tank #${tankId}`}
+      </h1>
+      {tank && (
+        <p className="text-gray-600 mb-4">
+          {tank.gallons} gallons – {tank.water_type} water
+        </p>
+      )}
 
+      {/* 🧪 Add Log Form */}
       <form onSubmit={handleSubmit} className="max-w-xl">
         <div className="grid grid-cols-2 gap-2 mb-4">
-          <input name="ph" placeholder="pH" value={form.ph} onChange={handleChange} className="border p-2" />
-          <input name="hardness" placeholder="Hardness" value={form.hardness} onChange={handleChange} className="border p-2" />
-          <input name="ammonia" placeholder="Ammonia" value={form.ammonia} onChange={handleChange} className="border p-2" />
-          <input name="nitrite" placeholder="Nitrite" value={form.nitrite} onChange={handleChange} className="border p-2" />
-          <input name="nitrate" placeholder="Nitrate" value={form.nitrate} onChange={handleChange} className="border p-2" />
-          <input name="salinity" placeholder="Salinity (optional)" value={form.salinity} onChange={handleChange} className="border p-2" />
+          {["ph", "hardness", "ammonia", "nitrite", "nitrate", "salinity"].map(
+            (field) => (
+              <input
+                key={field}
+                name={field}
+                placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
+                value={(form as any)[field]}
+                onChange={handleChange}
+                className="border p-2"
+              />
+            )
+          )}
         </div>
 
         <textarea
@@ -156,6 +171,7 @@ export default function WaterLogPage() {
         </button>
       </form>
 
+      {/* 📋 Existing Logs Table */}
       <h2 className="text-xl font-semibold mt-6 mb-2">Previous Logs</h2>
       <div className="overflow-x-auto">
         <table className="table-auto w-full border text-sm">
@@ -173,20 +189,45 @@ export default function WaterLogPage() {
             </tr>
           </thead>
           <tbody>
-            {logs.map(log => (
+            {logs.map((log) => (
               <tr key={log.id} className="border-t">
-                <td className="px-2 py-1">{new Date(log.created_at).toLocaleString()}</td>
+                <td className="px-2 py-1">
+                  {new Date(log.created_at).toLocaleString()}
+                </td>
                 {editingLog === log.id ? (
                   <>
-                    <td><input name="ph" value={editForm.ph ?? ""} onChange={handleEditChange} className="border p-1 w-full" /></td>
-                    <td><input name="hardness" value={editForm.hardness ?? ""} onChange={handleEditChange} className="border p-1 w-full" /></td>
-                    <td><input name="ammonia" value={editForm.ammonia ?? ""} onChange={handleEditChange} className="border p-1 w-full" /></td>
-                    <td><input name="nitrite" value={editForm.nitrite ?? ""} onChange={handleEditChange} className="border p-1 w-full" /></td>
-                    <td><input name="nitrate" value={editForm.nitrate ?? ""} onChange={handleEditChange} className="border p-1 w-full" /></td>
-                    <td><input name="salinity" value={editForm.salinity ?? ""} onChange={handleEditChange} className="border p-1 w-full" /></td>
-                    <td><textarea name="notes" value={editForm.notes ?? ""} onChange={handleEditChange} className="border p-1 w-full" /></td>
+                    {[
+                      "ph",
+                      "hardness",
+                      "ammonia",
+                      "nitrite",
+                      "nitrate",
+                      "salinity",
+                    ].map((field) => (
+                      <td key={field}>
+                        <input
+                          name={field}
+                          value={(editForm as any)[field] ?? ""}
+                          onChange={handleEditChange}
+                          className="border p-1 w-full"
+                        />
+                      </td>
+                    ))}
                     <td>
-                      <button onClick={() => handleSaveEdit(log.id)} className="text-green-600">Save</button>
+                      <textarea
+                        name="notes"
+                        value={editForm.notes ?? ""}
+                        onChange={handleEditChange}
+                        className="border p-1 w-full"
+                      />
+                    </td>
+                    <td>
+                      <button
+                        onClick={() => handleSaveEdit(log.id)}
+                        className="text-green-600"
+                      >
+                        Save
+                      </button>
                     </td>
                   </>
                 ) : (
@@ -199,10 +240,15 @@ export default function WaterLogPage() {
                     <td className="px-2 py-1">{log.salinity ?? "N/A"}</td>
                     <td className="px-2 py-1">{log.notes ?? "None"}</td>
                     <td>
-                      <button onClick={() => {
-                        setEditingLog(log.id);
-                        setEditForm(log);
-                      }} className="text-blue-600">Edit</button>
+                      <button
+                        onClick={() => {
+                          setEditingLog(log.id);
+                          setEditForm(log);
+                        }}
+                        className="text-blue-600"
+                      >
+                        Edit
+                      </button>
                     </td>
                   </>
                 )}
