@@ -34,7 +34,7 @@ export default async function TankPage({ params }: { params: { id: string } }) {
   const tankId = Number(params.id);
 
   return (
-    <ClientLayout user={user}>
+    <ClientLayout>
       <div className="p-6">
         <TankDetail userId={user.id} tankId={tankId} />
       </div>

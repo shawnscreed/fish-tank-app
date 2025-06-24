@@ -12,7 +12,7 @@ export default async function PlantPage() {
   }
 
   return (
-    <ClientLayout user={user}>
+    <ClientLayout>
       <PlantTableClient />
     </ClientLayout>
   );

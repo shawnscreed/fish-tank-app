@@ -36,7 +36,7 @@ export default async function Page({ params }: { params: { id: string } }) {
   const tankId = Number(params.id);
 
   return (
-    <ClientLayout user={user}>
+    <ClientLayout>
       <WaterLogPage userId={user.id} tankId={tankId} />
     </ClientLayout>
   );

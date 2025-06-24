@@ -45,7 +45,7 @@ const token = cookieStore.get("token")?.value;
   const tanks = tankRes.rows;
 
   return (
-    <ClientLayout user={user}>
+    <ClientLayout>
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-2">
           Welcome, {user.name || user.email}

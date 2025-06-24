@@ -31,7 +31,7 @@ export default async function MaintenancePage({ params }: { params: { id: string
   }
 
   return (
-    <ClientLayout user={user}>
+    <ClientLayout>
       <TankMaintenancePage userId={user.id} tankId={Number(params.id)} />
     </ClientLayout>
   );

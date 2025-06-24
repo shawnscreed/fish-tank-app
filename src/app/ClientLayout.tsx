@@ -1,7 +1,12 @@
+// 📁 File: src/app/ClientLayout.tsx
 "use client";
 
 import Link from "next/link";
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
+import { getUserFromClientCookies, JWTUser } from "@/lib/auth";
+import UserStatus from "@/components/UserStatus";
+
+export type { JWTUser }; // ✅ Export the type for reuse elsewhere
 
 interface MenuItem {
   name: string;
@@ -10,23 +15,25 @@ interface MenuItem {
 
 interface ClientLayoutProps {
   children: ReactNode;
-  user?: {
-    id: number;
-    email: string;
-   role: "user" | "admin" | "super_admin" | "sub_admin" | "beta_user";
-    name?: string;
-  } | null;
+  user?: JWTUser | null; // ✅ Optional user prop
 }
 
-export default function ClientLayout({ children, user }: ClientLayoutProps) {
+export default function ClientLayout({ children, user: propUser }: ClientLayoutProps) {
+  const [user, setUser] = useState<JWTUser | null>(propUser ?? null);
+
+  useEffect(() => {
+    if (!propUser) {
+      getUserFromClientCookies().then(setUser);
+    }
+  }, [propUser]);
+
   const menuItems: MenuItem[] = [
     { name: "Dashboard", href: "/dashboard" },
     { name: "Coral", href: "/coral" },
     { name: "Tank", href: "/tank" },
     { name: "Work", href: "/work" },
     { name: "Chemicals", href: "/chemicals" },
-      { name: "Feedback", href: "/dashboard/feedback" },
-
+    { name: "Feedback", href: "/dashboard/feedback" },
   ];
 
   const adminPages: MenuItem[] =
@@ -41,6 +48,7 @@ export default function ClientLayout({ children, user }: ClientLayoutProps) {
   const adminTools: MenuItem[] =
     user?.role === "admin" || user?.role === "super_admin"
       ? [
+          { name: "Access Control", href: "/admin/access-control" },
           { name: "User Accounts", href: "/admin/user-account-manager" },
           { name: "Role Editor", href: "/admin/role-editor" },
           { name: "Referral Codes", href: "/admin/referral-code-manager" },
@@ -91,19 +99,11 @@ export default function ClientLayout({ children, user }: ClientLayoutProps) {
         </div>
 
         <div className="mt-6 text-sm text-gray-600">
-          {user ? (
-            <div>
-              Logged in as:
-              <br />
-              <span className="font-semibold">{user.name || user.email}</span>
-              <br />
-              Role: <span className="capitalize">{user.role}</span>
-              <form action="/logout" method="POST" className="mt-2">
-                <button className="text-red-600 hover:underline">Logout</button>
-              </form>
-            </div>
-          ) : (
-            <div className="text-red-600">Not logged in</div>
+          <UserStatus />
+          {user && (
+            <form action="/logout" method="POST" className="mt-2">
+              <button className="text-red-600 hover:underline">Logout</button>
+            </form>
           )}
         </div>
       </aside>

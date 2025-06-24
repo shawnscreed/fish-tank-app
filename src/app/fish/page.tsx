@@ -12,7 +12,7 @@ export default async function FishPage() {
   }
 
   return (
-    <ClientLayout user={user}>
+    <ClientLayout>
       <FishTableClient />
     </ClientLayout>
   );

@@ -12,7 +12,7 @@ export default async function InvertsPage() {
   }
 
   return (
-    <ClientLayout user={user}>
+    <ClientLayout>
       <InvertsTableClient />
     </ClientLayout>
   );

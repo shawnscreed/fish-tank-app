@@ -1,104 +1,101 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
+import ClientLayout from '@/app/ClientLayout';
 
-type Role = "user" | "admin" | "super_admin" | "beta_tester";
-
-interface User {
-  id: number;
-  name: string;
+interface RoleAssignment {
+  user_id: number;
   email: string;
-  role: Role;
-  created_at: string;
+  name?: string;
+  role: string;
 }
 
-export default function AdminRoleEditorPage() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [editingRoles, setEditingRoles] = useState<Record<number, Role>>({});
+export default function RoleEditorPage() {
+  const [roles, setRoles] = useState<RoleAssignment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/admin/role-editor")
-      .then((res) => res.json())
-      .then(setUsers)
-      .catch(console.error);
+    async function fetchRoles() {
+      try {
+        const res = await fetch('/api/admin/role-editor');
+        if (!res.ok) throw new Error('Failed to load roles');
+        const data = await res.json();
+        setRoles(data);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchRoles();
   }, []);
 
-  const handleRoleChange = (userId: number, newRole: Role) => {
-    setEditingRoles((prev) => ({ ...prev, [userId]: newRole }));
-  };
+  const updateRole = async (userId: number, newRole: string) => {
+    try {
+      const res = await fetch(`/api/admin/role-editor/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: newRole }),
+      });
 
-  const saveRole = async (userId: number) => {
-    const newRole = editingRoles[userId];
-    if (!newRole) return;
+      if (!res.ok) throw new Error('Failed to update role');
 
-    const res = await fetch("/api/admin/role-editor", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, newRole }),
-    });
-
-    if (res.ok) {
-      setUsers((prev) =>
-        prev.map((user) =>
-          user.id === userId ? { ...user, role: newRole } : user
+      setRoles((prev) =>
+        prev.map((r) =>
+          r.user_id === userId ? { ...r, role: newRole } : r
         )
       );
-      const updated = { ...editingRoles };
-      delete updated[userId];
-      setEditingRoles(updated);
-    } else {
-      console.error("Failed to update role");
+    } catch (err) {
+      alert('Failed to update role');
+      console.error(err);
     }
   };
 
+  
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Role Editor</h1>
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border border-gray-300">
-          <thead>
-            <tr className="bg-gray-100 text-left">
-              <th className="p-3 border-b">Name</th>
-              <th className="p-3 border-b">Email</th>
-              <th className="p-3 border-b">Role</th>
-              <th className="p-3 border-b">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => {
-              const currentRole = editingRoles[user.id] ?? user.role;
-              return (
-                <tr key={user.id} className="border-t">
-                  <td className="p-3">{user.name}</td>
-                  <td className="p-3">{user.email}</td>
-                  <td className="p-3">
+    <ClientLayout>
+      <div className="p-6">
+        <h1 className="text-2xl font-semibold mb-4">👥 Role Editor</h1>
+
+        {loading ? (
+          <p>Loading roles...</p>
+        ) : error ? (
+          <p className="text-red-600">Error: {error}</p>
+        ) : (
+          <table className="w-full border text-sm">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="border p-2">User</th>
+                <th className="border p-2">Email</th>
+                <th className="border p-2">Current Role</th>
+              </tr>
+            </thead>
+            <tbody>
+              {roles.map((r) => (
+                <tr key={r.user_id}>
+                  <td className="border p-2">{r.name || 'Unnamed'}</td>
+                  <td className="border p-2">{r.email}</td>
+                  <td className="border p-2">
                     <select
-                      value={currentRole}
-                      onChange={(e) =>
-                        handleRoleChange(user.id, e.target.value as Role)
-                      }
-                      className="border rounded px-2 py-1"
+                      value={r.role}
+                      onChange={(e) => updateRole(r.user_id, e.target.value)}
+                      className="border px-2 py-1"
                     >
-                      <option value="user">User</option>
-                      <option value="admin">Admin</option>
-                      <option value="super_admin">Super Admin</option>
-                      <option value="beta_tester">Beta Tester</option>
+                      <option value="user">user</option>
+                      <option value="beta_user">beta_user</option>
+                      <option value="sub_admin">sub_admin</option>
+                      <option value="admin">admin</option>
+                      <option value="super_admin">super_admin</option>
                     </select>
                   </td>
-                  <td className="p-3">
-                    <button
-                      onClick={() => saveRole(user.id)}
-                      className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-                    >
-                      Save
-                    </button>
-                  </td>
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
-    </div>
+    </ClientLayout>
   );
 }
