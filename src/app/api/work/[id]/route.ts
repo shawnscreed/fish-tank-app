@@ -98,9 +98,9 @@ export async function POST(
  */
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params;
+  const { id } = await context.params;
   const body = await req.json();
 
   const allowedList: (keyof typeof body)[] = [

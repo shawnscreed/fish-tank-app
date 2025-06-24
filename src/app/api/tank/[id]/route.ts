@@ -23,10 +23,11 @@ export async function GET(
 // PUT /api/tank/[id]
 export async function PUT(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await context.params;
   const body = await req.json();
-  const { id } = context.params;
+  
 
   const allowedFields = [
     'name', 'water_type', 'gallons', 'in_use'

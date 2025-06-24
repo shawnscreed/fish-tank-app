@@ -1,13 +1,13 @@
-// File: app/api/chemicals/[id]/route.ts
+// ✅ File: app/api/chemicals/[id]/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
-export async function DELETE(
-  _req: NextRequest,
-  context: { params: { id: string } }
+export async function PUT(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params; // ✅ await required
+  const { id } = await context.params;
 
   try {
     const result = await pool.query(
@@ -21,8 +21,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
-    console.error("DELETE /api/chemicals/[id] error:", err);
+    console.error("PUT /api/chemicals/[id] error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
-

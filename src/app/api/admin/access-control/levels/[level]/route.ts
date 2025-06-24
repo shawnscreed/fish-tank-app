@@ -1,3 +1,5 @@
+// ✅ File: src/app/api/admin/access-control/levels/[level]/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { getUserFromRequest } from "@/lib/auth";
@@ -23,19 +25,16 @@ export async function PUT(
   }
 
   try {
-    // Update MembershipLevel name
     await pool.query(
       `UPDATE "MembershipLevel" SET name = $1 WHERE name = $2`,
       [newLevel, oldLevel]
     );
 
-    // Update references in User
     await pool.query(
       `UPDATE "User" SET paid_level = $1 WHERE paid_level = $2`,
       [newLevel, oldLevel]
     );
 
-    // Update array references in PageAccessControl
     await pool.query(
       `UPDATE "PageAccessControl"
        SET required_levels = array_replace(required_levels, $2, $1)
@@ -64,7 +63,6 @@ export async function DELETE(
   const decodedLevel = decodeURIComponent(level);
 
   try {
-    // Remove the level from all page access rule arrays
     await pool.query(
       `UPDATE "PageAccessControl"
        SET required_levels = array_remove(required_levels, $1)
@@ -72,13 +70,11 @@ export async function DELETE(
       [decodedLevel]
     );
 
-    // Null out users with this paid_level
     await pool.query(
       `UPDATE "User" SET paid_level = NULL WHERE paid_level = $1`,
       [decodedLevel]
     );
 
-    // Delete the level itself
     await pool.query(
       `DELETE FROM "MembershipLevel" WHERE name = $1`,
       [decodedLevel]

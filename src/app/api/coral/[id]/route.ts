@@ -22,11 +22,11 @@ export async function GET(
 
 // PUT /api/coral/[id]
 export async function PUT(
-  req: Request,
-  context: { params: { id: string } }
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await context.params;
   const { params } = context;
-  const { id } = params;
   const body = await req.json();
 
     const allowedFields = [
