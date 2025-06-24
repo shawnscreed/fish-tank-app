@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "build": "cross-env NODE_OPTIONS='--max-old-space-size=2048' next build"
   },
   "dependencies": {
     "@prisma/client": "^6.10.0",
@@ -33,6 +33,7 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19",
     "@types/uuid": "^10.0.0",
+    "cross-env": "^7.0.3",
     "eslint": "^9",
     "eslint-config-next": "15.3.3",
     "plop": "^4.0.1",

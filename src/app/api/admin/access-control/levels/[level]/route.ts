@@ -1,5 +1,3 @@
-// File: src/app/api/admin/access-control/levels/[level]/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { getUserFromRequest } from "@/lib/auth";
@@ -7,14 +5,16 @@ import { getUserFromRequest } from "@/lib/auth";
 // ✅ PUT: Rename a level
 export async function PUT(
   req: NextRequest,
-  context: { params: { level: string } }
+  context: { params: Promise<{ level: string }> }
 ) {
   const user = await getUserFromRequest(req);
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
-  const oldLevel = decodeURIComponent(context.params.level);
+  const { level } = await context.params;
+  const oldLevel = decodeURIComponent(level);
+
   const { new_level } = await req.json();
   const newLevel = typeof new_level === "string" ? new_level.trim() : "";
 
