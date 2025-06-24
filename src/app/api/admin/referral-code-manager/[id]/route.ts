@@ -6,36 +6,28 @@ import { getUserFromRequest } from "@/lib/auth";
 
 export async function PUT(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const user = await getUserFromRequest(req);
+  const { id } = await context.params;
+  const { new_code } = await req.json();
 
-  if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-  }
-
-  const id = context.params.id;
-  const { code, role } = await req.json();
-
-  if (!code || !role) {
-    return NextResponse.json(
-      { error: "Missing code or role" },
-      { status: 400 }
-    );
+  if (!new_code || typeof new_code !== "string") {
+    return NextResponse.json({ error: "Missing or invalid new_code" }, { status: 400 });
   }
 
   try {
     const result = await pool.query(
-      `UPDATE "ReferralCode" SET code = $1, role = $2 WHERE id = $3 RETURNING *`,
-      [code, role, id]
+      `UPDATE "ReferralCode" SET code = $1 WHERE id = $2 RETURNING *`,
+      [new_code.trim(), id]
     );
 
     if (result.rowCount === 0) {
       return NextResponse.json({ error: "Referral code not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, updated: result.rows[0] });
+    return NextResponse.json({ updated: result.rows[0] });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("Referral code update failed:", err);
+    return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
 }
