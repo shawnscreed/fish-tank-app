@@ -34,14 +34,17 @@ export default function DashboardClient({
         </ul>
       )}
 
-      <AddTankForm userId={userId} />
+      <AddTankForm userId={userId.toString()} />
+
 
       {activeTankId && (
         <>
           <h2 className="text-xl font-semibold mt-6 mb-2">
             Work in Progress for Tank #{activeTankId}
           </h2>
-          <WorkWizard userId={userId} tankId={activeTankId} />
+         <WorkWizard userId={userId} tankId={activeTankId} />
+<WorkTable userId={userId} />
+
         </>
       )}
 

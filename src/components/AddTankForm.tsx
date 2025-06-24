@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 
-export default function AddTankForm({ userId }: { userId: number }) {
+export default function AddTankForm({ userId }: { userId: string }) {
+
   const [name, setName] = useState("");
   const [gallons, setGallons] = useState("");
   const [waterType, setWaterType] = useState("fresh");

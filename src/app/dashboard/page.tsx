@@ -1,57 +1,37 @@
-// app/dashboard/page.tsx
-import { cookies as getCookies } from "next/headers";
+// File: app/dashboard/page.tsx
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/authOptions";
 import { redirect } from "next/navigation";
-import { jwtVerify } from "jose";
-import pool from "@/lib/db";
 import ClientLayout from "@/app/ClientLayout";
 import AddTankForm from "@/components/AddTankForm";
+import pool from "@/lib/db";
 import Link from "next/link";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
-
-interface JWTUser {
-  id: number;
-  email: string;
- role: "user" | "admin" | "super_admin" | "sub_admin" | "beta_user";
-
-  name?: string;
-}
-
 export default async function DashboardPage() {
-const cookieStore = await getCookies();
-const token = cookieStore.get("token")?.value;
+  const session = await getServerSession(authOptions);
 
-  if (!token) {
+  if (!session || !session.user?.id) {
     redirect("/login");
   }
 
-  let user: JWTUser | null = null;
+  const userId = session.user.id;
+  const userName = session.user.name || session.user.email;
+  const userRole = (session.user as any).role;
 
-  try {
-    const { payload } = await jwtVerify(
-      token,
-      new TextEncoder().encode(JWT_SECRET)
-    );
-    user = payload as unknown as JWTUser;
-  } catch (err) {
-    console.error("JWT verification failed", err);
-    redirect("/login");
-  }
 
+  // Load tanks for this user
   const tankRes = await pool.query(
     `SELECT id, name, gallons, water_type FROM "Tank" WHERE user_id = $1`,
-    [user.id]
+    [userId]
   );
   const tanks = tankRes.rows;
 
   return (
     <ClientLayout>
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-2">
-          Welcome, {user.name || user.email}
-        </h1>
+        <h1 className="text-2xl font-bold mb-2">Welcome, {userName}</h1>
         <p className="text-gray-600 mb-4">
-          You are logged in as <strong>{user.role}</strong>.
+          You are logged in as <strong>{userRole}</strong>.
         </p>
 
         <form action="/api/logout" method="POST">
@@ -63,7 +43,7 @@ const token = cookieStore.get("token")?.value;
           </button>
         </form>
 
-        <AddTankForm userId={user.id} />
+        <AddTankForm userId={userId} />
 
         <h2 className="text-xl font-semibold mt-6 mb-2">Your Tanks</h2>
         {tanks.length === 0 ? (
