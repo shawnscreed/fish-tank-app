@@ -1,10 +1,10 @@
 // File: src/app/api/auth/[...nextauth]/route.ts
-import NextAuth, { AuthOptions } from "next-auth";
+import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
-import pool from "@/lib/db"; // Your PostgreSQL pool
+import pool from "@/lib/db";
 
-export const authOptions: AuthOptions = {
+const handler = NextAuth({
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -47,27 +47,25 @@ export const authOptions: AuthOptions = {
   session: {
     strategy: "jwt" as const,
   },
- callbacks: {
-  async jwt({ token, user }) {
-    if (user && "id" in user) {
-      token.id = user.id;
-    }
-    if (user && "role" in user) {
-      token.role = (user as any).role;
-    }
-    return token;
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user && "id" in user) {
+        token.id = user.id;
+      }
+      if (user && "role" in user) {
+        token.role = (user as any).role;
+      }
+      return token;
+    },
+
+    async session({ session, token }) {
+      if (token && session.user) {
+        (session.user as any).id = token.id as string;
+        (session.user as any).role = token.role;
+      }
+      return session;
+    },
   },
+});
 
-  async session({ session, token }) {
-    if (token && session.user) {
-      (session.user as any).id = token.id as string;
-      (session.user as any).role = token.role;
-    }
-    return session;
-  },
-},
-
-};
-
-const handler = NextAuth(authOptions);
 export { handler as GET, handler as POST };
