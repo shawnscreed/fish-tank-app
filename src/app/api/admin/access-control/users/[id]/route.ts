@@ -5,7 +5,10 @@ import pool from "@/lib/db";
 export async function PUT(
   req: NextRequest,
   context: { params: { id: string } }
-) {
+)
+
+
+{
   const { id } = context.params;
   const { paid_level } = await req.json();
 
