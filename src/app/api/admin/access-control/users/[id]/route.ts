@@ -4,12 +4,9 @@ import pool from "@/lib/db";
 // 🔐 PUT /api/admin/access-control/users/[id]
 export async function PUT(
   req: NextRequest,
-  context: { params: { id: string } }
-)
-
-
-{
-  const { id } = context.params;
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
   const { paid_level } = await req.json();
 
   if (!paid_level) {
