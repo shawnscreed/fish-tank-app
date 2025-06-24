@@ -47,16 +47,28 @@ const handler = NextAuth({
   session: {
     strategy: "jwt" as const,
   },
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user && "id" in user) {
-        token.id = user.id;
+callbacks: {
+  async jwt({ token, user }) {
+    if (user && "id" in user) {
+      token.id = user.id;
+
+      // 🔍 Lookup user in your DB by email to get their role
+      try {
+        const result = await pool.query(
+          `SELECT role FROM "User" WHERE email = $1`,
+          [user.email]
+        );
+
+        token.role = result.rows[0]?.role || "user"; // fallback role
+      } catch (err) {
+        console.error("Failed to fetch role from DB:", err);
+        token.role = "user";
       }
-      if (user && "role" in user) {
-        token.role = (user as any).role;
-      }
-      return token;
-    },
+    }
+
+    return token;
+  },
+
 
     async session({ session, token }) {
       if (token && session.user) {

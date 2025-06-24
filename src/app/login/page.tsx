@@ -3,15 +3,27 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { signIn } from "next-auth/react"; // ✅ Required for Google button to work
+import { signIn } from "next-auth/react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle email/password login logic if needed
+
+    const result = await signIn("credentials", {
+      redirect: false,
+      email,
+      password,
+    });
+
+    if (result?.error) {
+      setError("Login failed: " + result.error);
+    } else {
+      window.location.href = "/dashboard";
+    }
   };
 
   return (
@@ -36,7 +48,11 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-          <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 mb-3">
+          {error && <p className="text-red-500 text-sm text-center mb-3">{error}</p>}
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 mb-3"
+          >
             Sign In
           </button>
 
@@ -49,7 +65,9 @@ export default function LoginPage() {
           </button>
 
           <div className="mt-3 text-sm text-center">
-            <Link href="/signup" className="text-blue-500 hover:underline">Create an account</Link>
+            <Link href="/signup" className="text-blue-500 hover:underline">
+              Create an account
+            </Link>
           </div>
         </form>
       </div>
@@ -66,9 +84,21 @@ export default function LoginPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl">
           {[
-            { icon: "🧪", label: "Water Testing Logs", desc: "Track pH, hardness, ammonia, nitrate levels and more." },
-            { icon: "🐡", label: "Stocking Suggestions", desc: "Get suggestions based on current tank setup." },
-            { icon: "🛠️", label: "Maintenance Reminders", desc: "Stay on top of cleaning, filter changes, and testing." },
+            {
+              icon: "🧪",
+              label: "Water Testing Logs",
+              desc: "Track pH, hardness, ammonia, nitrate levels and more.",
+            },
+            {
+              icon: "🐡",
+              label: "Stocking Suggestions",
+              desc: "Get suggestions based on current tank setup.",
+            },
+            {
+              icon: "🛠️",
+              label: "Maintenance Reminders",
+              desc: "Stay on top of cleaning, filter changes, and testing.",
+            },
           ].map((item, i) => (
             <div key={i} className="bg-white rounded-xl p-6 shadow-md">
               <div className="text-4xl">{item.icon}</div>
