@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { signIn } from "next-auth/react"; // ✅ Required for Google button to work
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -10,7 +11,7 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic here
+    // Handle email/password login logic if needed
   };
 
   return (
@@ -35,9 +36,18 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-          <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+          <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 mb-3">
             Sign In
           </button>
+
+          <button
+            type="button"
+            onClick={() => signIn("google")}
+            className="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded shadow transition"
+          >
+            Sign in with Google
+          </button>
+
           <div className="mt-3 text-sm text-center">
             <Link href="/signup" className="text-blue-500 hover:underline">Create an account</Link>
           </div>
