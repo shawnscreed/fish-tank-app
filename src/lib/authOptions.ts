@@ -19,9 +19,9 @@ export const authOptions: AuthOptions = {
       async authorize(credentials) {
         if (!credentials) return null;
 
-        try {
+          try {
           const result = await pool.query(
-            `SELECT * FROM "User" WHERE email = $1 AND password = crypt($2, password)`,
+            `SELECT * FROM "User" WHERE email = $1 AND password_hash = crypt($2, password_hash)`,
             [credentials.email, credentials.password]
           );
 
