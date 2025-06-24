@@ -4,10 +4,11 @@ import pool from "@/lib/db";
 
 export async function PUT(
   req: NextRequest,
-  context: { params: { id: string; logId: string } }
+  context: { params: Promise<{ id: string; logId: string }> }
 ) {
-  const tankId = parseInt(context.params.id);
-  const logId = parseInt(context.params.logId);
+  const { id, logId } = await context.params;
+  const tankId = parseInt(id); // ✅ safe now
+
   const data = await req.json();
 
   try {

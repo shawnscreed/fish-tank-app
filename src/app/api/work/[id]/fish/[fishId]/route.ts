@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
 export async function DELETE(
-  _req: NextRequest,
-  context: { params: { id: string; fishId: string } }
+  req: NextRequest,
+  context: { params: Promise<{ id: string; fishId: string }> } // ✅ CORRECT
 ) {
- const { id, fishId } = await context.params;
+  const { id, fishId } = await context.params;
 
 
   try {

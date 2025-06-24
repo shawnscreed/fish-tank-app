@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
-// GET /api/coral/[id]
-
+// ✅ GET /api/coral/[id]
 export async function GET(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) 
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
 
-{
   try {
-    const result = await pool.query('SELECT * FROM "Coral" WHERE id = $1', [params.id]);
+    const result = await pool.query('SELECT * FROM "Coral" WHERE id = $1', [id]);
     if (result.rows.length === 0) {
       return NextResponse.json({ error: 'Coral not found' }, { status: 404 });
     }
@@ -20,22 +19,21 @@ export async function GET(
   }
 }
 
-// PUT /api/coral/[id]
+// ✅ PUT /api/coral/[id]
 export async function PUT(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }  // ✅ Correct
 ) {
   const { id } = await context.params;
-  const { params } = context;
+
   const body = await req.json();
 
-    const allowedFields = [
+  const allowedFields = [
     "name", "water_type", "ph_low", "ph_high",
     "hardness_low", "hardness_high", "temp_low", "temp_high",
     "in_use", "aggressiveness"
   ];
 
-  // Only include fields that were sent in the request
   const updates = Object.keys(body)
     .filter(key => allowedFields.includes(key))
     .map((key, idx) => `${key} = $${idx + 1}`)
@@ -55,9 +53,14 @@ export async function PUT(
       [...values, id]
     );
 
+    if (result.rows.length === 0) {
+      return NextResponse.json({ error: 'Coral not found' }, { status: 404 });
+    }
+
     return NextResponse.json(result.rows[0]);
   } catch (error: any) {
     console.error('PUT error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+

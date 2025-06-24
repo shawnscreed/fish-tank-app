@@ -1,3 +1,9 @@
-export default function FishDetailPage({ params }: { params: { id: string } }) {
-  return <div>Fish Detail for ID: {params.id}</div>;
+export default async function FishDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+
+  return <div>Fish Detail for ID: {id}</div>;
 }

@@ -1,3 +1,9 @@
-export default function TankDetailPage({ params }: { params: { id: string } }) {
-  return <div>Tank Detail for ID: {params.id}</div>;
+export default async function TankDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+
+  return <div>Tank Detail for ID: {id}</div>;
 }

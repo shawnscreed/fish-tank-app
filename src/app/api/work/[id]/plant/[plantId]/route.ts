@@ -3,10 +3,10 @@ import pool from "@/lib/db";
 
 // DELETE /api/work/[id]/plant/[plantId]
 export async function DELETE(
-  _req: NextRequest,
-  context: { params: { plantId: string } }
+  req: NextRequest,
+  context: { params: Promise<{ id: string; plantId: string }> } // ✅ Correct type
 ) {
-  const { plantId } = await context.params; // ✅ Await the params
+  const { id, plantId } = await context.params;
 
   try {
     await pool.query('DELETE FROM "TankPlant" WHERE id = $1', [parseInt(plantId)]);

@@ -45,7 +45,20 @@ export default function TankMaintenancePage({
     );
     fetch("/api/chemicals").then((res) => res.json().then(setAllChemicals));
 
-    setLoading(false);
+    Promise.all([
+  fetch(`/api/tanks/${id}?user_id=${userId}`).then((res) => res.json().then(setTank)),
+  fetch(`/api/work/${id}/waterchange`).then((res) => res.json().then(setWaterChanges)),
+  fetch(`/api/work/${id}/chemical`).then((res) =>
+    res.json().then((data) => {
+      if (Array.isArray(data)) setChemicals(data);
+      else setChemicals([]);
+    })
+  ),
+  fetch("/api/chemicals").then((res) => res.json().then(setAllChemicals)),
+])
+.catch(console.error)
+.finally(() => setLoading(false));
+
   }, [id, userId]);
 
   const addWaterChange = async () => {

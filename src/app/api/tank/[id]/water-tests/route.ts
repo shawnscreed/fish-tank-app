@@ -1,13 +1,12 @@
-// File: src/app/api/tank/[id]/water-tests/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
-// Fetch all water test entries for a specific tank
+// GET /api/tank/[id]/water-tests
 export async function GET(
-  _req: NextRequest,
-  context: { params: { id: string } }
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = context.params;
+  const { id } = await context.params;
   try {
     const result = await pool.query(
       `SELECT * FROM "TankWaterTest" WHERE tank_id = $1 ORDER BY tested_at DESC`,
@@ -20,12 +19,13 @@ export async function GET(
   }
 }
 
-// Add a new water test entry
+// POST /api/tank/[id]/water-tests
 export async function POST(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = context.params;
+  const { id } = await context.params;
+
   const body = await req.json();
 
   const {

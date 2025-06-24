@@ -6,10 +6,10 @@ import pool from "@/lib/db";
 
 // GET - Fetch all water tests for a tank
 export async function GET(
-  _req: NextRequest,
-  context: { params: { id: string } }
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> } // ✅ CORRECT
 ) {
-  const { id } = context.params;
+  const { id } = await context.params;
   try {
     const result = await pool.query(
       `SELECT * FROM "WaterTest" WHERE tank_id = $1 ORDER BY test_date DESC`,
@@ -25,9 +25,9 @@ export async function GET(
 // POST - Add a new water test result
 export async function POST(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> } // ✅ CORRECT
 ) {
-  const { id } = context.params;
+  const { id } = await context.params;
   const {
     test_date,
     ph,

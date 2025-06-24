@@ -15,8 +15,11 @@ interface JWTUser {
   name?: string;
 }
 
-export default async function Page({ params }: { params: { id: string } }) {
-  const cookieStore = await cookies(); // ✅ Await here
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const tankId = Number(id); // ✅ Use id here
+
+  const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
 
   if (!token) redirect("/login");
@@ -32,8 +35,6 @@ export default async function Page({ params }: { params: { id: string } }) {
     console.error("JWT verification failed", err);
     redirect("/login");
   }
-
-  const tankId = Number(params.id);
 
   return (
     <ClientLayout>

@@ -15,7 +15,12 @@ interface JWTUser {
   name?: string;
 }
 
-export default async function MaintenancePage({ params }: { params: { id: string } }) {
+export default async function MaintenancePage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
   const cookieStore = await cookies();
   const token = cookieStore.get("token")?.value;
 
@@ -32,7 +37,8 @@ export default async function MaintenancePage({ params }: { params: { id: string
 
   return (
     <ClientLayout>
-      <TankMaintenancePage userId={user.id} tankId={Number(params.id)} />
+      <TankMaintenancePage userId={user.id} tankId={Number(id)} />
+
     </ClientLayout>
   );
 }

@@ -7,10 +7,10 @@ import pool from "@/lib/db"; // PostgreSQL connection from shared config
  */
 // ✅ GET /api/work?user_id=1
 export async function GET(
-  _req: NextRequest,
-  context: { params: { id: string } }
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> } // ✅ CORRECT
 ) {
-  const { id } = await context.params; // ✅ Correct use
+  const { id } = await context.params;
 
   try {
     const result = await pool.query(
@@ -34,10 +34,10 @@ export async function GET(
  * Removes a tank entry by ID
  */
 export async function DELETE(
-  _req: NextRequest,
-  context: { params: { id: string } }
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> } // ✅ CORRECT
 ) {
-  const { id } = context.params;
+  const { id } = await context.params;
 
   try {
     await pool.query('DELETE FROM "Work" WHERE id = $1', [id]);
@@ -54,10 +54,10 @@ export async function DELETE(
  */
 export async function POST(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> } // ✅ CORRECT
 ) {
+  const { id } = await context.params;
   const { type, entryId } = await req.json();
-   const { id } = await context.params; // ✅ Correct use
   const tankId = parseInt(id);
 
   try {

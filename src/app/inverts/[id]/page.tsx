@@ -1,3 +1,9 @@
-export default function InvertsDetailPage({ params }: { params: { id: string } }) {
-  return <div>Inverts Detail for ID: {params.id}</div>;
+export default async function InvertsDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+
+  return <div>Inverts Detail for ID: {id}</div>;
 }

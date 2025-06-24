@@ -1,3 +1,8 @@
-export default function CoralDetailPage({ params }: { params: { id: string } }) {
-  return <div>Coral Detail for ID: {params.id}</div>;
+export default async function CoralDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  return <div>Coral Detail for ID: {id}</div>;
 }

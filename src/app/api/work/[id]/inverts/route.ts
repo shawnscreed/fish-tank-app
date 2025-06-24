@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
 export async function GET(
-  _req: NextRequest,
-  context: { params: { id: string } }
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> } // ✅ CORRECT
 ) {
   const { id } = await context.params;
 

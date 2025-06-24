@@ -2,15 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
 // GET /api/inverts/[id]
-
 export async function GET(
-  _req: NextRequest,
-  { params }: { params: { id: string } }
-) 
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
 
-{
   try {
-    const result = await pool.query('SELECT * FROM "Inverts" WHERE id = $1', [params.id]);
+    const result = await pool.query('SELECT * FROM "Inverts" WHERE id = $1', [id]);
     if (result.rows.length === 0) {
       return NextResponse.json({ error: 'Inverts not found' }, { status: 404 });
     }
@@ -29,8 +28,8 @@ export async function PUT(
 
   const text = await req.text();
   if (!text) {
-  return NextResponse.json({ message: "No content to update" }, { status: 200 });
-}
+    return NextResponse.json({ message: "No content to update" }, { status: 200 });
+  }
 
   const body = JSON.parse(text);
 
@@ -60,4 +59,3 @@ export async function PUT(
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
-

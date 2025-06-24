@@ -5,10 +5,10 @@ import pool from "@/lib/db";
 
 // GET: Fetch all maintenance logs for a specific tank
 export async function GET(
-  _req: NextRequest,
-  context: { params: { id: string } }
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> } // ✅ CORRECT
 ) {
-  const { id } = context.params;
+  const { id } = await context.params;
   const tankId = parseInt(id);
 
   try {
@@ -26,9 +26,11 @@ export async function GET(
 // POST: Create a new maintenance log for a specific tank
 export async function POST(
   req: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
+
 ) {
-  const { id } = context.params;
+  const { id } = await context.params;
+
   const tankId = parseInt(id);
   const data = await req.json();
 
