@@ -2,17 +2,30 @@
 "use client";
 
 import Link from "next/link";
-import { ReactNode } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { ReactNode, useEffect, useState } from "react";
+import { getUserFromClientCookies, JWTUser } from "@/lib/auth";
+import UserStatus from "@/components/UserStatus";
+
+export type { JWTUser };
 
 interface MenuItem {
   name: string;
   href: string;
 }
 
-export default function ClientLayout({ children }: { children: ReactNode }) {
-  const { data: session, status } = useSession();
-  const user = session?.user;
+interface ClientLayoutProps {
+  children: ReactNode;
+  user?: JWTUser | null; // ✅ Accept user as prop
+}
+
+export default function ClientLayout({ children, user: propUser }: ClientLayoutProps) {
+  const [user, setUser] = useState<JWTUser | null>(propUser ?? null);
+
+  useEffect(() => {
+    if (!propUser) {
+      getUserFromClientCookies().then(setUser);
+    }
+  }, [propUser]);
 
   const menuItems: MenuItem[] = [
     { name: "Dashboard", href: "/dashboard" },
@@ -86,20 +99,11 @@ export default function ClientLayout({ children }: { children: ReactNode }) {
         </div>
 
         <div className="mt-6 text-sm text-gray-600">
-          {user ? (
-            <>
-              <p className="mb-1">
-                Logged in as <strong>{user.name || user.email}</strong>
-              </p>
-              <button
-                onClick={() => signOut({ callbackUrl: "/login" })}
-                className="text-red-600 hover:underline"
-              >
-                Logout
-              </button>
-            </>
-          ) : (
-            <p className="text-gray-500">Not logged in</p>
+          <UserStatus />
+          {user && (
+            <form action="/logout" method="POST" className="mt-2">
+              <button className="text-red-600 hover:underline">Logout</button>
+            </form>
           )}
         </div>
       </aside>
