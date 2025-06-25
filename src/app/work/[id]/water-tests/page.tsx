@@ -1,11 +1,12 @@
 "use client";
 
-// Page: app/work/[id]/water-tests/page.tsx
-// Description: This page allows users to view and log water test results for a specific tank.
+// 📄 File: app/work/[id]/water-tests/page.tsx
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import ClientLayout from "@/app/ClientLayout";
+import { useParams, useRouter } from "next/navigation";
+import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
+import { useSession } from "next-auth/react";
+import { JWTUser } from "@/lib/auth";
 
 interface WaterTest {
   id: number;
@@ -43,11 +44,31 @@ const testOptionsByType: Record<string, { test_type: string; unit: string }[]> =
 
 export default function WaterTestsPage() {
   const { id } = useParams();
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const [currentUser, setCurrentUser] = useState<JWTUser | null>(null);
+
   const [tank, setTank] = useState<any>(null);
   const [tests, setTests] = useState<WaterTest[]>([]);
   const [form, setForm] = useState({ test_type: "", value: "" });
 
-  const loadTests = async () => {
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+    } else if (status === "authenticated" && session?.user) {
+      const { id, name, email, role } = session.user as any;
+      setCurrentUser({ id: Number(id), name, email, role });
+    }
+  }, [status, session, router]);
+
+  useEffect(() => {
+    if (id) {
+      fetch(`/api/work/${id}`).then(res => res.json()).then(setTank);
+      fetchTests();
+    }
+  }, [id]);
+
+  const fetchTests = async () => {
     const res = await fetch(`/api/water-tests/${id}`);
     const data = await res.json();
     setTests(data);
@@ -68,54 +89,53 @@ export default function WaterTestsPage() {
 
     if (res.ok) {
       setForm({ test_type: "", value: "" });
-      await loadTests();
+      await fetchTests();
     } else {
       alert("Failed to save water test");
     }
   };
 
-  useEffect(() => {
-    fetch(`/api/work/${id}`).then(res => res.json()).then(setTank);
-    loadTests();
-  }, [id]);
+  if (!currentUser || !tank) {
+    return (
+      <ClientLayoutWrapper user={currentUser as JWTUser}>
+        <div className="p-6 text-gray-600">Loading tank...</div>
+      </ClientLayoutWrapper>
+    );
+  }
 
   return (
-    <ClientLayout>
+    <ClientLayoutWrapper user={currentUser}>
       <div className="p-6">
         <h1 className="text-xl font-bold mb-4">Tank #{id} - Water Tests</h1>
-        {tank && (
-          <>
-            <p><strong>Water Type:</strong> {tank.water_type}</p>
-            <p><strong>Gallons:</strong> {tank.gallons}</p>
+        <p><strong>Water Type:</strong> {tank.water_type}</p>
+        <p><strong>Gallons:</strong> {tank.gallons}</p>
 
-            <div className="my-4 bg-gray-100 p-4 border rounded">
-              <h2 className="font-semibold mb-2">Log New Test</h2>
-              <select
-                className="border p-1 mr-2"
-                value={form.test_type}
-                onChange={(e) => setForm({ ...form, test_type: e.target.value })}
-              >
-                <option value="">Select Test Type</option>
-                {testOptionsByType[tank.water_type]?.map(opt => (
-                  <option key={opt.test_type} value={opt.test_type}>{opt.test_type}</option>
-                ))}
-              </select>
-              <input
-                type="number"
-                placeholder="Value"
-                className="border p-1 mr-2 w-24"
-                value={form.value}
-                onChange={(e) => setForm({ ...form, value: e.target.value })}
-              />
-              <button
-                className="bg-blue-600 text-white px-4 py-1 rounded"
-                onClick={handleSubmit}
-              >
-                Submit
-              </button>
-            </div>
-          </>
-        )}
+        <div className="my-4 bg-gray-100 p-4 border rounded">
+          <h2 className="font-semibold mb-2">Log New Test</h2>
+          <select
+            className="border p-1 mr-2"
+            value={form.test_type}
+            onChange={(e) => setForm({ ...form, test_type: e.target.value })}
+          >
+            <option value="">Select Test Type</option>
+            {testOptionsByType[tank.water_type]?.map(opt => (
+              <option key={opt.test_type} value={opt.test_type}>{opt.test_type}</option>
+            ))}
+          </select>
+          <input
+            type="number"
+            placeholder="Value"
+            className="border p-1 mr-2 w-24"
+            value={form.value}
+            onChange={(e) => setForm({ ...form, value: e.target.value })}
+          />
+          <button
+            className="bg-blue-600 text-white px-4 py-1 rounded"
+            onClick={handleSubmit}
+          >
+            Submit
+          </button>
+        </div>
 
         <h2 className="text-lg font-semibold mt-6 mb-2">Test History</h2>
         {tests.length === 0 ? (
@@ -143,6 +163,6 @@ export default function WaterTestsPage() {
           </table>
         )}
       </div>
-    </ClientLayout>
+    </ClientLayoutWrapper>
   );
 }

@@ -1,10 +1,9 @@
 "use client";
-
-// 📄 Page: /admin/access-control/page.tsx
-
-import { useEffect, useState } from "react";
-import ClientLayout from "@/app/ClientLayout";
-import { getUserFromClientCookies } from "@/lib/auth";
+import { useEffect, useState, useMemo } from "react";
+import { useSession } from "next-auth/react";
+import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
+import { useRouter } from "next/navigation";
+import { JWTUser } from "@/lib/auth";
 
 interface AccessRule {
   id: number;
@@ -21,6 +20,19 @@ interface User {
 }
 
 export default function AccessControlPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  const currentUser: JWTUser | null = useMemo(() => {
+    if (!session?.user?.id || !session?.user?.email) return null;
+    return {
+      id: Number((session.user as any).id),
+      email: session.user.email,
+      name: session.user.name || "",
+      role: (session.user as any).role,
+    };
+  }, [session]);
+
   const [rules, setRules] = useState<AccessRule[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
@@ -28,7 +40,21 @@ export default function AccessControlPage() {
   const [editingLevel, setEditingLevel] = useState<string | null>(null);
   const [editedLevelName, setEditedLevelName] = useState("");
   const [newLevel, setNewLevel] = useState("");
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+    }
+  }, [status, router]);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      rescanPages();
+    }
+  }, [status]);
+
+  if (status === "loading") return <p>Loading...</p>;
+  if (!currentUser) return <p>Not logged in</p>;
 
   const fetchData = async () => {
     try {
@@ -48,20 +74,23 @@ export default function AccessControlPage() {
     }
   };
 
-useEffect(() => {
-  getUserFromClientCookies().then((user) => {
-    if (user) {
-      setCurrentUser({ ...user, paid_level: "Free" }); // ✅ Add default
-    } else {
-      setCurrentUser(null);
+  const rescanPages = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/access-control/rescan", {
+        method: "POST",
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Rescan failed");
+      await fetchData();
+      console.log("🔄 Pages and levels rescanned.");
+    } catch (err) {
+      console.error("Error rescanning pages:", err);
+      alert("Failed to rescan pages.");
+    } finally {
+      setLoading(false);
     }
-  });
-
-  // 🔄 Automatically trigger a rescan on first load
-  rescanPages(); // 👈 Add this line
-}, []);
-
-
+  };
 
   const updateAccess = async (route: string, levels: string[]) => {
     try {
@@ -113,24 +142,6 @@ useEffect(() => {
     updateAccess(route, newLevels);
   };
 
-  const rescanPages = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/admin/access-control/rescan", {
-        method: "POST",
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Rescan failed");
-      await fetchData();
-      console.log("🔄 Pages and levels rescanned.");
-    } catch (err) {
-      console.error("Error rescanning pages:", err);
-      alert("Failed to rescan pages.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const addLevel = async () => {
     if (!newLevel.trim()) return;
     try {
@@ -179,16 +190,12 @@ useEffect(() => {
   };
 
   return (
-    <ClientLayout>
+    <ClientLayoutWrapper user={currentUser}>
       <div className="p-6 max-w-7xl mx-auto">
         <h1 className="text-2xl font-bold mb-1">🔐 Access Control Panel</h1>
-        {currentUser ? (
-          <p className="text-sm text-gray-500 mb-4">
-            Logged in as <strong>{currentUser.name || currentUser.email}</strong> ({currentUser.role})
-          </p>
-        ) : (
-          <p className="text-sm text-red-500 mb-4">⚠ Not logged in</p>
-        )}
+        <p className="text-sm text-gray-500 mb-4">
+          Logged in as <strong>{currentUser.name || currentUser.email}</strong> ({currentUser.role})
+        </p>
 
         {/* Membership Levels */}
         <div className="mb-6">
@@ -339,6 +346,6 @@ useEffect(() => {
           </tbody>
         </table>
       </div>
-    </ClientLayout>
+    </ClientLayoutWrapper>
   );
 }

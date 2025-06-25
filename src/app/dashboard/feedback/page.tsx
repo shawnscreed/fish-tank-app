@@ -1,18 +1,41 @@
-// 📄 Page: /dashboard/feedback
+// 📄 Page: /dashboard/feedback/page.tsx
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import ClientLayout from "@/app/ClientLayout";
-import { getUserFromCookies } from "@/lib/auth";
+import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
 
 export default function FeedbackPage() {
+  const { data: session, status } = useSession();
   const router = useRouter();
+
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [rating, setRating] = useState("");
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login");
+    }
+  }, [status, router]);
+
+  if (status === "loading") {
+    return <div className="p-6 text-gray-500">Checking session...</div>;
+  }
+
+  if (!session?.user) {
+    return <div className="p-6 text-red-500">Unauthorized</div>;
+  }
+
+  const user = {
+    id: Number((session.user as any).id),
+    name: session.user.name || "",
+    email: session.user.email || "",
+    role: (session.user as any).role,
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +57,7 @@ export default function FeedbackPage() {
   };
 
   return (
-    <ClientLayout>
+    <ClientLayoutWrapper user={user}>
       <div className="max-w-2xl mx-auto p-6">
         <h1 className="text-2xl font-bold mb-4">💬 Submit Feedback</h1>
 
@@ -88,6 +111,6 @@ export default function FeedbackPage() {
           </form>
         )}
       </div>
-    </ClientLayout>
+    </ClientLayoutWrapper>
   );
 }

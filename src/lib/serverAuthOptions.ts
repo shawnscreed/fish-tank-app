@@ -1,5 +1,4 @@
-// File: src/lib/authOptions.ts
-
+// File: src/lib/serverAuthOptions.ts
 import { AuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -34,16 +33,19 @@ export const authOptions: AuthOptions = {
             };
           }
         } catch (err) {
-          console.error("Login error:", err);
+          console.error("❌ Login error:", err);
         }
         return null;
       },
     }),
   ],
-  secret: process.env.NEXTAUTH_SECRET,
+
   session: {
     strategy: "jwt",
   },
+
+  secret: process.env.NEXTAUTH_SECRET,
+
   cookies: {
     sessionToken: {
       name: `next-auth.session-token`,
@@ -56,7 +58,6 @@ export const authOptions: AuthOptions = {
     },
   },
 
-  // ✅ Merged callbacks
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider === "google") {
@@ -80,16 +81,20 @@ export const authOptions: AuthOptions = {
     async jwt({ token, user }) {
       if (user && "id" in user) {
         token.id = user.id;
+        token.email = user.email;
+        token.role = (user as any).role || "user";
       }
 
-      if (token.email) {
+      if (token.email && !token.role) {
         try {
           const result = await pool.query(
             `SELECT id, role FROM "User" WHERE email = $1`,
             [token.email]
           );
-          token.id = result.rows[0]?.id;
-          token.role = result.rows[0]?.role || "user";
+          if (result.rows.length > 0) {
+            token.id = result.rows[0].id;
+            token.role = result.rows[0].role || "user";
+          }
         } catch (err) {
           console.error("❌ Role fetch failed:", err);
         }

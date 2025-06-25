@@ -1,19 +1,13 @@
-// app/dashboard/tank/[id]/maintenance/page.tsx
+// 📄 File: app/dashboard/tank/[id]/maintenance/page.tsx
 
-import { cookies } from "next/headers";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/serverAuthOptions";
 import { redirect } from "next/navigation";
-import { jwtVerify } from "jose";
-import ClientLayout from "@/app/ClientLayout";
+import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
 import TankMaintenancePage from "@/components/TankMaintenancePage";
+import pool from "@/lib/db";
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
-
-interface JWTUser {
-  id: number;
-  email: string;
-  role: "super_admin" | "sub_admin" | "admin" | "user" | "beta_user";
-  name?: string;
-}
+type Role = "super_admin" | "sub_admin" | "admin" | "user" | "beta_user";
 
 export default async function MaintenancePage({
   params,
@@ -21,24 +15,37 @@ export default async function MaintenancePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+  const session = await getServerSession(authOptions);
 
-  if (!token) redirect("/login");
-
-  let user: JWTUser;
-  try {
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(JWT_SECRET));
-    user = payload as unknown as JWTUser;
-  } catch (err) {
-    console.error("JWT verification failed", err);
+  if (!session?.user) {
+    console.warn("❌ No session found, redirecting to login");
     redirect("/login");
   }
 
-  return (
-    <ClientLayout>
-      <TankMaintenancePage userId={user.id} tankId={Number(id)} />
+  const userId = Number(session.user.id);
+  const tankId = Number(id);
 
-    </ClientLayout>
+  // 🛡 Check if tank belongs to the current user
+  const tankCheck = await pool.query(
+    `SELECT user_id FROM "Tank" WHERE id = $1`,
+    [tankId]
+  );
+
+  if (!tankCheck.rows.length || tankCheck.rows[0].user_id !== userId) {
+    console.warn(`❌ Unauthorized access to tank ${tankId} by user ${userId}`);
+    redirect("/dashboard");
+  }
+
+  const user = {
+    id: userId,
+    email: session.user.email || "",
+    name: session.user.name || "",
+    role: (session.user as any).role as Role,
+  };
+
+  return (
+    <ClientLayoutWrapper user={user}>
+      <TankMaintenancePage userId={userId} tankId={tankId} />
+    </ClientLayoutWrapper>
   );
 }

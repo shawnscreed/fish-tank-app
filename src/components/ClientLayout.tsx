@@ -1,31 +1,24 @@
-// 📁 File: src/app/ClientLayout.tsx
 "use client";
 
-import Link from "next/link";
-import { ReactNode, useEffect, useState } from "react";
-import { getUserFromClientCookies, JWTUser } from "@/lib/auth";
-import UserStatus from "@/components/UserStatus";
 
-export type { JWTUser };
+import Link from "next/link";
+import { ReactNode } from "react";
+import { JWTUser } from "@/lib/auth";
+import UserStatus from "@/components/UserStatus";
+import { usePathname } from "next/navigation";
+
+interface ClientLayoutProps {
+  user: JWTUser;
+  children: ReactNode;
+}
 
 interface MenuItem {
   name: string;
   href: string;
 }
 
-interface ClientLayoutProps {
-  children: ReactNode;
-  user?: JWTUser | null; // ✅ Accept user as prop
-}
-
-export default function ClientLayout({ children, user: propUser }: ClientLayoutProps) {
-  const [user, setUser] = useState<JWTUser | null>(propUser ?? null);
-
-  useEffect(() => {
-    if (!propUser) {
-      getUserFromClientCookies().then(setUser);
-    }
-  }, [propUser]);
+export default function ClientLayout({ children, user }: ClientLayoutProps) {
+  const pathname = usePathname();
 
   const menuItems: MenuItem[] = [
     { name: "Dashboard", href: "/dashboard" },
@@ -37,7 +30,7 @@ export default function ClientLayout({ children, user: propUser }: ClientLayoutP
   ];
 
   const adminPages: MenuItem[] =
-    user?.role === "admin" || user?.role === "super_admin"
+    user.role === "admin" || user.role === "super_admin"
       ? [
           { name: "Fish", href: "/fish" },
           { name: "Plant", href: "/plant" },
@@ -46,7 +39,7 @@ export default function ClientLayout({ children, user: propUser }: ClientLayoutP
       : [];
 
   const adminTools: MenuItem[] =
-    user?.role === "admin" || user?.role === "super_admin"
+    user.role === "admin" || user.role === "super_admin"
       ? [
           { name: "Access Control", href: "/admin/access-control" },
           { name: "User Accounts", href: "/admin/user-account-manager" },
@@ -56,6 +49,8 @@ export default function ClientLayout({ children, user: propUser }: ClientLayoutP
         ]
       : [];
 
+  const isActive = (href: string) => pathname === href;
+
   return (
     <div className="flex min-h-screen">
       <aside className="w-64 bg-gray-100 p-4 border-r flex flex-col justify-between">
@@ -64,7 +59,14 @@ export default function ClientLayout({ children, user: propUser }: ClientLayoutP
           <ul className="space-y-2">
             {menuItems.map((item) => (
               <li key={item.href}>
-                <Link href={item.href} className="text-blue-600 hover:underline">
+                <Link
+                  href={item.href}
+                  className={`${
+                    isActive(item.href)
+                      ? "font-bold text-black"
+                      : "text-blue-600"
+                  } hover:underline`}
+                >
                   {item.name}
                 </Link>
               </li>
@@ -72,10 +74,19 @@ export default function ClientLayout({ children, user: propUser }: ClientLayoutP
 
             {adminPages.length > 0 && (
               <>
-                <li className="mt-4 text-sm text-gray-500 uppercase">Admin Pages</li>
+                <li className="mt-4 text-sm text-gray-500 uppercase">
+                  Admin Pages
+                </li>
                 {adminPages.map((item) => (
                   <li key={item.href}>
-                    <Link href={item.href} className="text-blue-700 hover:underline">
+                    <Link
+                      href={item.href}
+                      className={`${
+                        isActive(item.href)
+                          ? "font-bold text-black"
+                          : "text-blue-700"
+                      } hover:underline`}
+                    >
                       {item.name}
                     </Link>
                   </li>
@@ -85,10 +96,19 @@ export default function ClientLayout({ children, user: propUser }: ClientLayoutP
 
             {adminTools.length > 0 && (
               <>
-                <li className="mt-4 text-sm text-gray-500 uppercase">Admin Tools</li>
+                <li className="mt-4 text-sm text-gray-500 uppercase">
+                  Admin Tools
+                </li>
                 {adminTools.map((item) => (
                   <li key={item.href}>
-                    <Link href={item.href} className="text-purple-700 hover:underline">
+                    <Link
+                      href={item.href}
+                      className={`${
+                        isActive(item.href)
+                          ? "font-bold text-black"
+                          : "text-purple-700"
+                      } hover:underline`}
+                    >
                       {item.name}
                     </Link>
                   </li>
@@ -99,13 +119,10 @@ export default function ClientLayout({ children, user: propUser }: ClientLayoutP
         </div>
 
         <div className="mt-6 text-sm text-gray-600">
-          <UserStatus />
-          {user && (
-            <form action="/api/logout" method="POST">
-
-              <button className="text-red-600 hover:underline">Logout</button>
-            </form>
-          )}
+          <UserStatus/>
+          <form action="/api/logout" method="POST">
+            <button className="text-red-600 hover:underline">Logout</button>
+          </form>
         </div>
       </aside>
 

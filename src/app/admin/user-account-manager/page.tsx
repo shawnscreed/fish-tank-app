@@ -1,24 +1,30 @@
-// 📄 Page: /admin/user-account-manager
+// 📄 Page: /admin/user-account-manager/page.tsx
 
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getUserFromClientCookies, JWTUser } from '@/lib/auth';
-import ClientLayout from '@/app/ClientLayout';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import ClientLayoutWrapper from '@/components/ClientLayoutWrapper';
+import type { Role, JWTUser } from '@/lib/auth';
 
-type Role = 'user' | 'admin' | 'super_admin' | 'beta_tester';
-
-type User = JWTUser & {
+type User = {
+  id: number;
+  name?: string;
+  email: string;
+  role: Role;
   created_at?: string;
 };
 
 export default function UserAccountManagerPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<JWTUser | null>(null);
 
-  // Add User form state
   const [showAddForm, setShowAddForm] = useState(false);
   const [newUser, setNewUser] = useState({
     name: '',
@@ -29,9 +35,22 @@ export default function UserAccountManagerPage() {
   const [addError, setAddError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchUsers();
-    getUserFromClientCookies().then(setCurrentUser);
-  }, []);
+    if (status === 'unauthenticated') {
+      router.push('/login');
+    }
+  }, [status, router]);
+
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user) {
+      setCurrentUser({
+        id: Number((session.user as any).id),
+        name: session.user.name || '',
+        email: session.user.email || '',
+        role: (session.user as any).role,
+      });
+      fetchUsers();
+    }
+  }, [status, session]);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -41,7 +60,7 @@ export default function UserAccountManagerPage() {
       const data = await res.json();
       setUsers(data);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -53,45 +72,54 @@ export default function UserAccountManagerPage() {
       return;
     }
 
-    const res = await fetch('/api/admin/user-account-manager', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newUser),
-    });
+    try {
+      const res = await fetch('/api/admin/user-account-manager', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser),
+      });
 
-    if (res.ok) {
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to create user');
+      }
+
       setNewUser({ name: '', email: '', password: '', role: 'user' });
       setShowAddForm(false);
       setAddError(null);
       fetchUsers();
-    } else {
-      const data = await res.json();
-      setAddError(data.error || 'Failed to create user');
+    } catch (err: any) {
+      setAddError(err.message || 'Unexpected error');
     }
   };
 
-  return (
-    <ClientLayout>
-      <div className="p-6">
-        <h1 className="text-2xl font-semibold mb-4">User Account Manager</h1>
+  if (status === 'loading' || !currentUser) {
+    return (
+      <div className="p-6 text-gray-500">Checking session...</div>
+    );
+  }
 
-        {currentUser && (
-          <p className="text-gray-500 mb-4">
-            Logged in as <strong>{currentUser.name || currentUser.email}</strong> ({currentUser.role})
-          </p>
-        )}
+  return (
+    <ClientLayoutWrapper user={currentUser}>
+      <div className="p-6 max-w-6xl mx-auto">
+        <h1 className="text-2xl font-bold mb-4">User Account Manager</h1>
+
+        <p className="text-gray-600 mb-4">
+          Logged in as <strong>{currentUser.name || currentUser.email}</strong> ({currentUser.role})
+        </p>
 
         <button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="mb-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          className="mb-6 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
-          {showAddForm ? 'Cancel' : 'Add User'}
+          {showAddForm ? 'Cancel' : 'Add New User'}
         </button>
 
         {showAddForm && (
-          <div className="mb-6 border p-4 rounded bg-gray-50">
-            <h2 className="font-semibold mb-2">Create New User</h2>
+          <div className="mb-8 border p-4 rounded bg-gray-50">
+            <h2 className="font-semibold mb-3">Create New User</h2>
             {addError && <p className="text-red-600 mb-2">{addError}</p>}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <input
                 type="text"
@@ -108,24 +136,23 @@ export default function UserAccountManagerPage() {
                 className="border px-3 py-2 rounded"
               />
               <input
-  type="password"
-  placeholder="Password"
-  value={newUser.password}
-  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-  className="border px-3 py-2 rounded"
-/>
-
-
+                type="password"
+                placeholder="Password"
+                value={newUser.password}
+                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                className="border px-3 py-2 rounded"
+              />
               <select
                 value={newUser.role}
                 onChange={(e) => setNewUser({ ...newUser, role: e.target.value as Role })}
                 className="border px-3 py-2 rounded"
               >
                 <option value="user">User</option>
+                <option value="beta_user">Beta User</option>
                 <option value="admin">Admin</option>
                 <option value="super_admin">Super Admin</option>
-                <option value="beta_tester">Beta Tester</option>
               </select>
+
               <button
                 onClick={handleAddUser}
                 className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 col-span-full"
@@ -143,23 +170,23 @@ export default function UserAccountManagerPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full border text-sm">
-              <thead className="bg-gray-100 border-b text-left">
+              <thead className="bg-gray-100 text-left">
                 <tr>
-                  <th className="py-2 px-4">ID</th>
-                  <th className="py-2 px-4">Name</th>
-                  <th className="py-2 px-4">Email</th>
-                  <th className="py-2 px-4">Role</th>
-                  <th className="py-2 px-4">Created At</th>
+                  <th className="p-3 border-b">ID</th>
+                  <th className="p-3 border-b">Name</th>
+                  <th className="p-3 border-b">Email</th>
+                  <th className="p-3 border-b">Role</th>
+                  <th className="p-3 border-b">Created At</th>
                 </tr>
               </thead>
               <tbody>
                 {users.map((user) => (
-                  <tr key={user.id} className="border-b hover:bg-gray-50">
-                    <td className="py-2 px-4">{user.id}</td>
-                    <td className="py-2 px-4">{user.name || 'Unnamed'}</td>
-                    <td className="py-2 px-4">{user.email}</td>
-                    <td className="py-2 px-4">{user.role}</td>
-                    <td className="py-2 px-4">
+                  <tr key={user.id} className="hover:bg-gray-50 border-t">
+                    <td className="p-3">{user.id}</td>
+                    <td className="p-3">{user.name || 'Unnamed'}</td>
+                    <td className="p-3 font-mono">{user.email}</td>
+                    <td className="p-3 capitalize">{user.role}</td>
+                    <td className="p-3 text-gray-500">
                       {user.created_at
                         ? new Date(user.created_at).toLocaleString()
                         : '—'}
@@ -171,6 +198,6 @@ export default function UserAccountManagerPage() {
           </div>
         )}
       </div>
-    </ClientLayout>
+    </ClientLayoutWrapper>
   );
 }

@@ -5,7 +5,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import ClientLayout from "@/app/ClientLayout";
+import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
+import { getUserFromClientCookies, JWTUser } from "@/lib/auth";
 
 // Represents a plant entry with additional metadata
 interface Plant {
@@ -61,6 +62,7 @@ function singularize(type: string) {
 
 export default function WorkDetailPage() {
   const { id } = useParams();
+  const [user, setUser] = useState<JWTUser | null>(null);
   const [tank, setTank] = useState<any>(null);
   const [selectedType, setSelectedType] = useState("fish");
   const [entryList, setEntryList] = useState<any[]>([]);
@@ -122,16 +124,33 @@ export default function WorkDetailPage() {
   };
 
   useEffect(() => {
-    fetch(`/api/work/${id}`).then(res => res.json()).then(setTank);
-    fetch(`/api/${selectedType}`).then(res => res.json()).then(setEntryList);
-    loadAssigned();
-    fetchLatestWaterTest();
+    const init = async () => {
+      const userData = await getUserFromClientCookies();
+      setUser(userData);
+
+      const tankRes = await fetch(`/api/work/${id}`);
+      setTank(await tankRes.json());
+
+      const entries = await fetch(`/api/${selectedType}`);
+      setEntryList(await entries.json());
+
+      await loadAssigned();
+      await fetchLatestWaterTest();
+    };
+
+    init();
   }, [id, selectedType]);
 
-  if (!tank) return <ClientLayout><div className="p-6">Loading...</div></ClientLayout>;
+  if (!user || !tank) {
+    return (
+      <ClientLayoutWrapper user={user as JWTUser}>
+        <div className="p-6">Loading...</div>
+      </ClientLayoutWrapper>
+    );
+  }
 
   return (
-    <ClientLayout>
+    <ClientLayoutWrapper user={user}>
       <div className="p-6">
         <h1 className="text-xl font-bold mb-4">Tank #{id} Details</h1>
         <p><strong>Water Type:</strong> {tank.water_type}</p>
@@ -154,32 +173,20 @@ export default function WorkDetailPage() {
           </div>
         )}
 
-        {/* Link to water test page */}
+        {/* Links */}
         <div className="my-4">
-          <Link
-            href={`/work/${id}/water`}
-            className="text-blue-600 underline hover:text-blue-800"
-          >
+          <Link href={`/work/${id}/water`} className="text-blue-600 underline hover:text-blue-800">
             View & Log Water Tests
           </Link>
-
-
         </div>
 
-
-{/* Link to maintenance page */}
         <div className="my-4">
-<Link
-  href={`/work/${id}/maintenance`}
-  className="text-blue-600 underline hover:text-blue-800"
->
-  🧪 Maintenance Log
-</Link>
-</div>
+          <Link href={`/work/${id}/maintenance`} className="text-blue-600 underline hover:text-blue-800">
+            🧪 Maintenance Log
+          </Link>
+        </div>
 
-
-
-        {/* Assignment controls */}
+        {/* Assignment UI */}
         <div className="my-4">
           <label className="font-semibold">Select Type to Assign: </label>
           <select
@@ -214,7 +221,7 @@ export default function WorkDetailPage() {
           </button>
         </div>
 
-        {/* Display assigned entries by type */}
+        {/* Assigned items */}
         <div className="mt-6 space-y-8">
           {[{ type: "fish", label: "Fish", entries: assignedFish },
             { type: "inverts", label: "Inverts", entries: assignedInverts },
@@ -247,58 +254,53 @@ export default function WorkDetailPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {entries.map((entry, index) => (
-                      <tr key={`${type}-${entry.id}-${index}`}>
-                        <td className="border px-2 py-1">{entry.name}</td>
-                        {type === "plant" ? (
-                          (() => {
-                            const plant = entry as Plant;
-                            return (
-                              <>
-                                <td className="border px-2 py-1">{plant.light_level || "N/A"}</td>
-                                <td className="border px-2 py-1">{plant.co2_required ? "Yes" : "No"}</td>
-                                <td className="border px-2 py-1">{plant.temperature_range || "?"}</td>
-                                <td className="border px-2 py-1 text-center">
-                                  <button
-                                    onClick={() => handleDelete(type, plant.id)}
-                                    className="text-red-600 hover:underline text-sm"
-                                  >
-                                    Delete
-                                  </button>
-                                </td>
-                              </>
-                            );
-                          })()
-                        ) : (
-                          (() => {
-                            const item = entry as AssignedEntry;
-                            return (
-                              <>
-                                <td className="border px-2 py-1">{item.ph_low ?? "?"}–{item.ph_high ?? "?"}</td>
-                                <td className="border px-2 py-1">{item.hardness_low ?? "?"}–{item.hardness_high ?? "?"}</td>
-                                <td className="border px-2 py-1">{item.temp_low ?? "?"}–{item.temp_high ?? "?"}</td>
-                                <td className="border px-2 py-1">{item.aggressiveness || "N/A"}</td>
-                                <td className="border px-2 py-1 text-center">
-                                  <button
-                                    onClick={() => handleDelete(type, item.tank_entry_id)}
-                                    className="text-red-600 hover:underline text-sm"
-                                  >
-                                    Delete
-                                  </button>
-                                </td>
-                              </>
-                            );
-                          })()
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
+  {entries.map((entry, index) => {
+    if (type === "plant") {
+      const plant = entry as Plant;
+      return (
+        <tr key={`${type}-${plant.id}-${index}`}>
+          <td className="border px-2 py-1">{plant.name}</td>
+          <td className="border px-2 py-1">{plant.light_level || "N/A"}</td>
+          <td className="border px-2 py-1">{plant.co2_required ? "Yes" : "No"}</td>
+          <td className="border px-2 py-1">{plant.temperature_range || "?"}</td>
+          <td className="border px-2 py-1 text-center">
+            <button
+              onClick={() => handleDelete(type, plant.id)}
+              className="text-red-600 hover:underline text-sm"
+            >
+              Delete
+            </button>
+          </td>
+        </tr>
+      );
+    } else {
+      const item = entry as AssignedEntry;
+      return (
+        <tr key={`${type}-${item.id}-${index}`}>
+          <td className="border px-2 py-1">{item.name}</td>
+          <td className="border px-2 py-1">{item.ph_low ?? "?"}–{item.ph_high ?? "?"}</td>
+          <td className="border px-2 py-1">{item.hardness_low ?? "?"}–{item.hardness_high ?? "?"}</td>
+          <td className="border px-2 py-1">{item.temp_low ?? "?"}–{item.temp_high ?? "?"}</td>
+          <td className="border px-2 py-1">{item.aggressiveness || "N/A"}</td>
+          <td className="border px-2 py-1 text-center">
+            <button
+              onClick={() => handleDelete(type, item.tank_entry_id)}
+              className="text-red-600 hover:underline text-sm"
+            >
+              Delete
+            </button>
+          </td>
+        </tr>
+      );
+    }
+  })}
+</tbody>
                 </table>
               )}
             </div>
           ))}
         </div>
       </div>
-    </ClientLayout>
+    </ClientLayoutWrapper>
   );
 }

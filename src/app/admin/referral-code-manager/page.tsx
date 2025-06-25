@@ -1,9 +1,12 @@
-// 📄 Page: /admin/referral-code-manager
+// 📄 Page: /admin/referral-code-manager/page.tsx
 
 "use client";
 
-import { useEffect, useState } from "react";
-import ClientLayout from "@/app/ClientLayout";
+import { useEffect, useState, useMemo } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
+import { JWTUser } from "@/lib/auth";
 
 type Role = "user" | "admin" | "super_admin" | "beta_tester";
 
@@ -15,6 +18,19 @@ interface ReferralCode {
 }
 
 export default function AdminReferralCodeManagerPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  const currentUser: JWTUser | null = useMemo(() => {
+    if (!session?.user?.id || !session?.user?.email) return null;
+    return {
+      id: Number((session.user as any).id),
+      email: session.user.email,
+      name: session.user.name || "",
+      role: (session.user as any).role,
+    };
+  }, [session]);
+
   const [codes, setCodes] = useState<ReferralCode[]>([]);
   const [newCode, setNewCode] = useState("");
   const [newRole, setNewRole] = useState<Role>("user");
@@ -25,18 +41,30 @@ export default function AdminReferralCodeManagerPage() {
   const [editRole, setEditRole] = useState<Role>("user");
 
   useEffect(() => {
-    fetchCodes();
-  }, []);
+    if (status === "unauthenticated") {
+      router.push("/login");
+    }
+  }, [status, router]);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      fetchCodes();
+    }
+  }, [status]);
 
   const fetchCodes = async () => {
     try {
       const res = await fetch("/api/admin/referral-code-manager");
       const json = await res.json();
-      if (Array.isArray(json)) setCodes(json);
-      else if (Array.isArray(json.codes)) setCodes(json.codes);
-      else setCodes([]);
+      if (Array.isArray(json)) {
+        setCodes(json);
+      } else if (Array.isArray(json.codes)) {
+        setCodes(json.codes);
+      } else {
+        setCodes([]);
+      }
     } catch (err) {
-      console.error("Failed to fetch referral codes:", err);
+      console.error("❌ Failed to fetch referral codes:", err);
       setCodes([]);
     }
   };
@@ -47,20 +75,26 @@ export default function AdminReferralCodeManagerPage() {
       return;
     }
 
-    const res = await fetch("/api/admin/referral-code-manager", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: newCode, role: newRole }),
-    });
+    try {
+      const res = await fetch("/api/admin/referral-code-manager", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: newCode, role: newRole }),
+      });
 
-    if (res.ok) {
+      if (!res.ok) {
+        const err = await res.json();
+        setError(err.error || "Failed to add code.");
+        return;
+      }
+
       setNewCode("");
       setNewRole("user");
       setError("");
-      fetchCodes();
-    } else {
-      const err = await res.json();
-      setError(err.error || "Failed to add code");
+      await fetchCodes();
+    } catch (err) {
+      console.error("❌ Error adding code:", err);
+      setError("Failed to add referral code.");
     }
   };
 
@@ -77,28 +111,42 @@ export default function AdminReferralCodeManagerPage() {
   };
 
   const saveEdit = async () => {
-    const res = await fetch(`/api/admin/referral-code-manager/${editingId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: editCode, role: editRole }),
-    });
+    try {
+      const res = await fetch(`/api/admin/referral-code-manager/${editingId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: editCode, role: editRole }),
+      });
 
-    if (res.ok) {
+      if (!res.ok) {
+        const err = await res.json();
+        setError(err.error || "Failed to update code.");
+        return;
+      }
+
       cancelEdit();
-      fetchCodes();
-    } else {
-      const err = await res.json();
-      setError(err.error || "Failed to update code");
+      await fetchCodes();
+    } catch (err) {
+      console.error("❌ Error updating referral code:", err);
+      setError("Failed to update referral code.");
     }
   };
 
+  if (status === "loading" || !currentUser) {
+    return (
+      <ClientLayoutWrapper user={currentUser || { id: 0, email: "", role: "user", name: "" }}>
+        <div className="p-6 text-gray-500">Checking session...</div>
+      </ClientLayoutWrapper>
+    );
+  }
+
   return (
-    <ClientLayout>
+    <ClientLayoutWrapper user={currentUser}>
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6">Referral Code Manager</h1>
+        <h1 className="text-2xl font-bold mb-6">🎟 Referral Code Manager</h1>
 
         <div className="mb-6 border p-4 rounded bg-gray-50">
-          <h2 className="font-semibold mb-2">Add New Code</h2>
+          <h2 className="font-semibold mb-2">➕ Add New Code</h2>
           {error && <p className="text-red-600 mb-2">{error}</p>}
           <div className="flex flex-wrap gap-4">
             <input
@@ -128,12 +176,12 @@ export default function AdminReferralCodeManagerPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border border-gray-300">
+          <table className="min-w-full bg-white border border-gray-300 text-sm">
             <thead>
               <tr className="bg-gray-100 text-left">
                 <th className="p-3 border-b">Code</th>
                 <th className="p-3 border-b">Role</th>
-                <th className="p-3 border-b">Created At</th>
+                <th className="p-3 border-b">Created</th>
                 <th className="p-3 border-b">Actions</th>
               </tr>
             </thead>
@@ -155,9 +203,7 @@ export default function AdminReferralCodeManagerPage() {
                     {editingId === code.id ? (
                       <select
                         value={editRole}
-                        onChange={(e) =>
-                          setEditRole(e.target.value as Role)
-                        }
+                        onChange={(e) => setEditRole(e.target.value as Role)}
                         className="border px-2 py-1 rounded"
                       >
                         <option value="user">User</option>
@@ -203,6 +249,6 @@ export default function AdminReferralCodeManagerPage() {
           </table>
         </div>
       </div>
-    </ClientLayout>
+    </ClientLayoutWrapper>
   );
 }

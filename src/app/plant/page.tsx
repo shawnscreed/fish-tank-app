@@ -1,19 +1,20 @@
-// File: src/app/plant/page.tsx
+// 📄 File: src/app/plant/page.tsx
+
 import { redirect } from "next/navigation";
-import ClientLayout from "@/app/ClientLayout";
-import { getUserFromCookies } from "@/lib/auth-server";
-import PlantTableClient from "@/app/plant/PlantTableClient";
+import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
+import { getUserFromServer } from "@/lib/auth-server";
+import PlantTableClient from "@/components/PlantTableClient";
 
 export default async function PlantPage() {
-  const user = await getUserFromCookies(); // ✅ Fixed typo
+  const user = await getUserFromServer(); // ✅ Updated function name
 
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
-    redirect("/"); // 🔒 Block non-admins
+    redirect("/"); // 🔒 Admins only
   }
 
   return (
-    <ClientLayout>
+    <ClientLayoutWrapper user={user}>
       <PlantTableClient />
-    </ClientLayout>
+    </ClientLayoutWrapper>
   );
 }

@@ -1,12 +1,14 @@
 // 📄 File: src/app/dashboard/page.tsx
+
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { authOptions } from "@/lib/serverAuthOptions"; // ✅ fixed
 import { redirect } from "next/navigation";
-import ClientLayout from "@/app/ClientLayout";
+import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
 import AddTankForm from "@/components/AddTankForm";
-import pool from "@/lib/db";
 import Link from "next/link";
-import { JWTUser } from "@/lib/auth";
+import pool from "@/lib/db"; // ✅ added
+
+type Role = "super_admin" | "sub_admin" | "admin" | "user" | "beta_user";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -16,35 +18,27 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const userId = Number(session.user.id); // Ensure it's a number
-  const userName = session.user.name || session.user.email;
-  const userRole = (session.user as any).role;
-
-  if (!userRole) {
-    console.error("❌ Session missing user role:", session.user);
-    redirect("/login");
-  }
-
-  const user: JWTUser = {
-    id: userId,
-    email: session.user.email || "",
+  const user = {
+    id: Number(session.user.id),
     name: session.user.name || "",
-    role: userRole,
+    email: session.user.email || "",
+    role: (session.user as any).role as Role,
   };
 
-  // Load tanks for this user
+  const userName = user.name || user.email;
+
   const tankRes = await pool.query(
     `SELECT id, name, gallons, water_type FROM "Tank" WHERE user_id = $1`,
-    [userId]
+    [user.id]
   );
   const tanks = tankRes.rows;
 
   return (
-    <ClientLayout user={user}>
+    <ClientLayoutWrapper user={user}>
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-2">Welcome, {userName}</h1>
         <p className="text-gray-600 mb-4">
-          You are logged in as <strong>{userRole}</strong>.
+          You are logged in as <strong>{user.role}</strong>.
         </p>
 
         <form action="/api/logout" method="POST">
@@ -56,8 +50,7 @@ export default async function DashboardPage() {
           </button>
         </form>
 
-       <AddTankForm userId={String(userId)} />
-
+        <AddTankForm userId={String(user.id)} />
 
         <h2 className="text-xl font-semibold mt-6 mb-2">Your Tanks</h2>
         {tanks.length === 0 ? (
@@ -78,6 +71,6 @@ export default async function DashboardPage() {
           </ul>
         )}
       </div>
-    </ClientLayout>
+    </ClientLayoutWrapper>
   );
 }

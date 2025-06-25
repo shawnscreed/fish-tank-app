@@ -2,8 +2,11 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
-import ClientLayout from "@/app/ClientLayout";
+import { useEffect, useState, useMemo } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
+import { JWTUser } from "@/lib/auth";
 
 interface FeedbackEntry {
   id: number;
@@ -14,35 +17,70 @@ interface FeedbackEntry {
 }
 
 export default function AdminFeedbackEntryViewerPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+
+  const currentUser: JWTUser | null = useMemo(() => {
+    if (!session?.user?.id || !session?.user?.email) return null;
+    return {
+      id: Number((session.user as any).id),
+      email: session.user.email,
+      name: session.user.name || "",
+      role: (session.user as any).role,
+    };
+  }, [session]);
+
   const [data, setData] = useState<FeedbackEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/admin/feedback-entry-viewer")
-      .then((res) => res.json())
-      .then((json) => {
-        if (Array.isArray(json)) {
-          setData(json);
-        } else if (Array.isArray(json.data)) {
-          setData(json.data);
-        } else {
-          setError("Unexpected response format.");
-        }
-      })
-      .catch((err) => {
-        console.error("Failed to load feedback:", err);
-        setError("Failed to load feedback.");
-      });
-  }, []);
+    if (status === "unauthenticated") {
+      router.push("/login");
+    }
+  }, [status, router]);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      fetch("/api/admin/feedback-entry-viewer")
+        .then((res) => res.json())
+        .then((json) => {
+          if (Array.isArray(json)) {
+            setData(json);
+          } else if (Array.isArray(json.data)) {
+            setData(json.data);
+          } else {
+            setError("Unexpected response format.");
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to load feedback:", err);
+          setError("Failed to load feedback.");
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    }
+  }, [status]);
+
+  if (status === "loading" || !currentUser) {
+    return (
+      <ClientLayoutWrapper user={currentUser || { id: 0, email: "", role: "user", name: "" }}>
+        <div className="p-6 text-gray-500">Checking session...</div>
+      </ClientLayoutWrapper>
+    );
+  }
 
   return (
-    <ClientLayout>
+    <ClientLayoutWrapper user={currentUser}>
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-4">Admin – Feedback Viewer</h1>
 
-        {error && <p className="text-red-600">{error}</p>}
-
-        {!error && data.length === 0 ? (
+        {loading ? (
+          <p className="text-gray-500">Loading feedback...</p>
+        ) : error ? (
+          <p className="text-red-600">{error}</p>
+        ) : data.length === 0 ? (
           <p className="text-gray-600">No feedback found.</p>
         ) : (
           <div className="overflow-x-auto">
@@ -60,7 +98,7 @@ export default function AdminFeedbackEntryViewerPage() {
                   <tr key={entry.id} className="text-sm hover:bg-gray-50">
                     <td className="p-2 border">{entry.name || "Anonymous"}</td>
                     <td className="p-2 border">{entry.email || "N/A"}</td>
-                    <td className="p-2 border whitespace-pre-wrap">
+                    <td className="p-2 border max-w-xs overflow-auto whitespace-pre-wrap">
                       {entry.message}
                     </td>
                     <td className="p-2 border">
@@ -73,6 +111,6 @@ export default function AdminFeedbackEntryViewerPage() {
           </div>
         )}
       </div>
-    </ClientLayout>
+    </ClientLayoutWrapper>
   );
 }
