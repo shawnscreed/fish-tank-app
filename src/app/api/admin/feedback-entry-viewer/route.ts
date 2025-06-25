@@ -1,8 +1,10 @@
-import { NextResponse } from "next/server";
+// File: src/app/api/admin/feedback-entry-viewer/route.ts
+
+import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { getUserFromRequest } from "@/lib/auth";
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   const user = await getUserFromRequest(req);
 
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
@@ -11,19 +13,13 @@ export async function GET(req: Request) {
 
   try {
     const result = await pool.query(`
-      SELECT 
-        f.id,
-        u.name,
-        u.email,
-        f.message,
-        f.created_at
-      FROM "Feedback" f
-      LEFT JOIN "User" u ON f.user_id = u.id
-      ORDER BY f.created_at DESC
+      SELECT id, user_id, message, created_at
+      FROM "Feedback"
+      ORDER BY created_at DESC
     `);
-
     return NextResponse.json(result.rows);
   } catch (err: any) {
+    console.error("❌ Error fetching feedback:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

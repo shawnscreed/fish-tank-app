@@ -1,7 +1,7 @@
-// File: src/app/api/auth/[...nextauth]/route.ts
-import NextAuth from "next-auth";
-import { authOptions } from "@/lib/serverAuthOptions"; // ✅ Safe to use server-side only
+// ✅ File: src/app/api/auth/[...nextauth]/route.ts
 
+import NextAuth from "next-auth";
+import { authOptions } from "@/lib/serverAuthOptions"; // ✅ central auth config
 
 const handler = NextAuth(authOptions);
 

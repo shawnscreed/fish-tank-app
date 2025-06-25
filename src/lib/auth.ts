@@ -1,6 +1,5 @@
-// 📁 File: src/lib/auth.ts
-
 import { jwtVerify, JWTPayload } from "jose";
+import { NextRequest } from "next/server";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
@@ -13,20 +12,19 @@ export interface JWTUser {
   name?: string;
 }
 
-// ✅ Shared decode logic
 async function decodeUser(token: string): Promise<JWTUser | null> {
   try {
     const { payload } = await jwtVerify(token, new TextEncoder().encode(JWT_SECRET));
     const possibleUser = payload as JWTPayload & Partial<JWTUser>;
 
     if (
-      typeof possibleUser.id === "number" &&
+      (typeof possibleUser.id === "number" || typeof possibleUser.id === "string") &&
       typeof possibleUser.email === "string" &&
       typeof possibleUser.role === "string"
     ) {
       return {
-        id: possibleUser.id,
-        email: possibleUser.email,
+        id: Number(possibleUser.id),
+        email: String(possibleUser.email),
         role: possibleUser.role as Role,
         name: possibleUser.name || "",
       };
@@ -37,29 +35,25 @@ async function decodeUser(token: string): Promise<JWTUser | null> {
   return null;
 }
 
-// ✅ For API Routes (Request object)
-export async function getUserFromRequest(req: Request): Promise<JWTUser | null> {
-  const token = req.headers.get("cookie")?.split("token=")[1]?.split(";")[0];
+export async function getUserFromRequest(req: NextRequest): Promise<JWTUser | null> {
+  const token = req.cookies.get("token")?.value;
   if (!token) return null;
   return decodeUser(token);
 }
 
-// ✅ For Server Components (App Router only)
 export async function getUserFromCookies(): Promise<JWTUser | null> {
   if (!process.env.NEXT_RUNTIME || process.env.NEXT_RUNTIME !== "nodejs") {
     throw new Error("getUserFromCookies can only be used in App Router server components");
   }
 
-  // Lazy load to avoid breaking Pages Router
   const { cookies } = await import("next/headers");
-  const cookieStore = await cookies(); // ✅ await the promise
-const token = cookieStore.get("token")?.value;
+  const cookieStore = await cookies(); // ✅ FIXED: Added await
+  const token = cookieStore.get("token")?.value;
 
   if (!token) return null;
   return decodeUser(token);
 }
 
-// ✅ For Client Components (calls /api/me)
 export async function getUserFromClientCookies(): Promise<JWTUser | null> {
   try {
     const res = await fetch("/api/me");

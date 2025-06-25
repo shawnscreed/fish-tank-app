@@ -1,9 +1,10 @@
 // File: src/app/api/admin/referral-code-manager/route.ts
-import { NextResponse } from "next/server";
+
+import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { getUserFromRequest } from "@/lib/auth";
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   const user = await getUserFromRequest(req);
 
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
@@ -22,8 +23,7 @@ export async function GET(req: Request) {
   }
 }
 
-
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   const user = await getUserFromRequest(req);
 
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   const { code, role } = await req.json();
 
   if (!code || !role) {
-    return NextResponse.json({ error: "Missing code or role" }, { status: 400 });
+    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
   try {
@@ -41,7 +41,6 @@ export async function POST(req: Request) {
       `INSERT INTO "ReferralCode" (code, role) VALUES ($1, $2) RETURNING *`,
       [code, role]
     );
-
     return NextResponse.json(result.rows[0]);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

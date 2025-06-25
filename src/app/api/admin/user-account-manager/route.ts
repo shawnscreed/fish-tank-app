@@ -1,11 +1,11 @@
-
 // File: src/app/api/admin/user-account-manager/route.ts
-import { NextResponse } from "next/server";
+
+import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { getUserFromRequest } from "@/lib/auth";
 import bcrypt from "bcryptjs"; // make sure it's installed
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   const user = await getUserFromRequest(req);
 
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
@@ -23,7 +23,8 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
-export async function POST(req: Request) {
+
+export async function POST(req: NextRequest) {
   const user = await getUserFromRequest(req);
 
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
-  const password_hash = await bcrypt.hash(password, 10); // Hash it
+  const password_hash = await bcrypt.hash(password, 10);
 
   try {
     const result = await pool.query(
