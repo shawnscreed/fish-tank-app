@@ -1,3 +1,5 @@
+// File: src/lib/authOptions.ts
+
 import { AuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -53,25 +55,51 @@ export const authOptions: AuthOptions = {
       },
     },
   },
+
+  // ✅ Merged callbacks
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === "google") {
+        try {
+          const result = await pool.query(
+            `SELECT * FROM "User" WHERE email = $1`,
+            [user.email]
+          );
+          if (result.rows.length === 0) {
+            console.warn("❌ Google login rejected – no user found:", user.email);
+            return false;
+          }
+        } catch (err) {
+          console.error("❌ Google sign-in DB check failed:", err);
+          return false;
+        }
+      }
+      return true;
+    },
+
     async jwt({ token, user }) {
       if (user && "id" in user) {
         token.id = user.id;
+      }
+
+      if (token.email) {
         try {
           const result = await pool.query(
-            `SELECT role FROM "User" WHERE email = $1`,
-            [user.email]
+            `SELECT id, role FROM "User" WHERE email = $1`,
+            [token.email]
           );
+          token.id = result.rows[0]?.id;
           token.role = result.rows[0]?.role || "user";
         } catch (err) {
-          console.error("Role fetch failed:", err);
-          token.role = "user";
+          console.error("❌ Role fetch failed:", err);
         }
       }
+
       return token;
     },
+
     async session({ session, token }) {
-      if (token && session.user) {
+      if (session.user && token) {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
       }

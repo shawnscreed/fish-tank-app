@@ -101,7 +101,8 @@ export default function ClientLayout({ children, user: propUser }: ClientLayoutP
         <div className="mt-6 text-sm text-gray-600">
           <UserStatus />
           {user && (
-            <form action="/logout" method="POST" className="mt-2">
+            <form action="/api/logout" method="POST">
+
               <button className="text-red-600 hover:underline">Logout</button>
             </form>
           )}

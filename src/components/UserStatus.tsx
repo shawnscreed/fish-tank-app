@@ -15,8 +15,9 @@ export default function UserStatus() {
   }
 
   return (
-    <p className="text-green-600">
-      Logged in as <strong>{user.name || user.email}</strong> ({user.role})
-    </p>
-  );
+  <div className="text-sm text-gray-700">
+    Logged in as <span className="font-medium">{user.name || user.email}</span>
+    <span className="ml-1 text-gray-500">({user.role})</span>
+  </div>
+);
 }

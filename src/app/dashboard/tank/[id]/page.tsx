@@ -1,3 +1,4 @@
+// 📄 File: src/app/dashboard/tank/[id]/page.tsx
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { jwtVerify } from "jose";
@@ -16,14 +17,17 @@ interface JWTUser {
 export default async function TankDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }) {
-  const { id } = await params;
+  const { id } = params;
 
-  const cookieStore = await cookies();
-  const token = cookieStore.get("token")?.value;
+const cookieStore = await cookies();
+const token = cookieStore.get("next-auth.session-token")?.value;
 
-  if (!token) redirect("/login");
+  if (!token) {
+    console.warn("❌ No token found");
+    redirect("/login");
+  }
 
   let user: JWTUser;
   try {
@@ -33,14 +37,14 @@ export default async function TankDetailPage({
     );
     user = payload as unknown as JWTUser;
   } catch (err) {
-    console.error("JWT verification failed", err);
+    console.error("❌ JWT verification failed:", err);
     redirect("/login");
   }
 
-  const tankId = Number(id); // ✅ FIXED
+  const tankId = Number(id);
 
   return (
-    <ClientLayout>
+    <ClientLayout user={user}>
       <div className="p-6">
         <TankDetail userId={user.id} tankId={tankId} />
       </div>
