@@ -1,69 +1,114 @@
-// File: app/dashboard/page.tsx
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
-import { redirect } from "next/navigation";
-import ClientLayout from "@/app/ClientLayout";
-import AddTankForm from "@/components/AddTankForm";
-import pool from "@/lib/db";
+// 📁 File: src/app/ClientLayout.tsx
+"use client";
+
 import Link from "next/link";
+import { ReactNode, useEffect, useState } from "react";
+import { getUserFromClientCookies, JWTUser } from "@/lib/auth";
+import UserStatus from "@/components/UserStatus";
 
-export default async function DashboardPage() {
-  const session = await getServerSession(authOptions);
+export type { JWTUser };
 
-  if (!session || !session.user?.id) {
-    redirect("/login");
-  }
+interface MenuItem {
+  name: string;
+  href: string;
+}
 
-  const userId = session.user.id;
-  const userName = session.user.name || session.user.email;
-  const userRole = (session.user as any).role;
+interface ClientLayoutProps {
+  children: ReactNode;
+  user?: JWTUser | null; // ✅ Accept user as prop
+}
 
+export default function ClientLayout({ children, user: propUser }: ClientLayoutProps) {
+  const [user, setUser] = useState<JWTUser | null>(propUser ?? null);
 
-  // Load tanks for this user
-  const tankRes = await pool.query(
-    `SELECT id, name, gallons, water_type FROM "Tank" WHERE user_id = $1`,
-    [userId]
-  );
-  const tanks = tankRes.rows;
+  useEffect(() => {
+    if (!propUser) {
+      getUserFromClientCookies().then(setUser);
+    }
+  }, [propUser]);
+
+  const menuItems: MenuItem[] = [
+    { name: "Dashboard", href: "/dashboard" },
+    { name: "Coral", href: "/coral" },
+    { name: "Tank", href: "/tank" },
+    { name: "Work", href: "/work" },
+    { name: "Chemicals", href: "/chemicals" },
+    { name: "Feedback", href: "/dashboard/feedback" },
+  ];
+
+  const adminPages: MenuItem[] =
+    user?.role === "admin" || user?.role === "super_admin"
+      ? [
+          { name: "Fish", href: "/fish" },
+          { name: "Plant", href: "/plant" },
+          { name: "Inverts", href: "/inverts" },
+        ]
+      : [];
+
+  const adminTools: MenuItem[] =
+    user?.role === "admin" || user?.role === "super_admin"
+      ? [
+          { name: "Access Control", href: "/admin/access-control" },
+          { name: "User Accounts", href: "/admin/user-account-manager" },
+          { name: "Role Editor", href: "/admin/role-editor" },
+          { name: "Referral Codes", href: "/admin/referral-code-manager" },
+          { name: "Feedback Entries", href: "/admin/feedback-entry-viewer" },
+        ]
+      : [];
 
   return (
-    <ClientLayout>
-      <div className="p-6">
-        <h1 className="text-2xl font-bold mb-2">Welcome, {userName}</h1>
-        <p className="text-gray-600 mb-4">
-          You are logged in as <strong>{userRole}</strong>.
-        </p>
-
-        <form action="/api/logout" method="POST">
-          <button
-            type="submit"
-            className="bg-red-600 text-white px-4 py-2 rounded mb-6"
-          >
-            Logout
-          </button>
-        </form>
-
-        <AddTankForm userId={userId} />
-
-        <h2 className="text-xl font-semibold mt-6 mb-2">Your Tanks</h2>
-        {tanks.length === 0 ? (
-          <p>No tanks found.</p>
-        ) : (
-          <ul className="list-disc list-inside space-y-2">
-            {tanks.map((tank) => (
-              <li key={tank.id}>
-                <Link
-                  href={`/dashboard/tank/${tank.id}`}
-                  className="text-blue-600 underline"
-                >
-                  {tank.name || "Unnamed Tank"} – {tank.gallons} gallons –{" "}
-                  {tank.water_type}
+    <div className="flex min-h-screen">
+      <aside className="w-64 bg-gray-100 p-4 border-r flex flex-col justify-between">
+        <div>
+          <h2 className="text-lg font-semibold mb-4">Menu</h2>
+          <ul className="space-y-2">
+            {menuItems.map((item) => (
+              <li key={item.href}>
+                <Link href={item.href} className="text-blue-600 hover:underline">
+                  {item.name}
                 </Link>
               </li>
             ))}
+
+            {adminPages.length > 0 && (
+              <>
+                <li className="mt-4 text-sm text-gray-500 uppercase">Admin Pages</li>
+                {adminPages.map((item) => (
+                  <li key={item.href}>
+                    <Link href={item.href} className="text-blue-700 hover:underline">
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </>
+            )}
+
+            {adminTools.length > 0 && (
+              <>
+                <li className="mt-4 text-sm text-gray-500 uppercase">Admin Tools</li>
+                {adminTools.map((item) => (
+                  <li key={item.href}>
+                    <Link href={item.href} className="text-purple-700 hover:underline">
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </>
+            )}
           </ul>
-        )}
-      </div>
-    </ClientLayout>
+        </div>
+
+        <div className="mt-6 text-sm text-gray-600">
+          <UserStatus />
+          {user && (
+            <form action="/logout" method="POST" className="mt-2">
+              <button className="text-red-600 hover:underline">Logout</button>
+            </form>
+          )}
+        </div>
+      </aside>
+
+      <main className="flex-1 p-6 bg-white">{children}</main>
+    </div>
   );
 }
