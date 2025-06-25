@@ -21,6 +21,7 @@ export default async function TankDetailPage({
 }) {
   const { id } = params;
 
+
 const cookieStore = await cookies();
 const token = cookieStore.get("next-auth.session-token")?.value;
 
