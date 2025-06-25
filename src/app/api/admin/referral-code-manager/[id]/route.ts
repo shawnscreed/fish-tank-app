@@ -1,5 +1,3 @@
-// 📄 src/app/api/admin/referral-code-manager/[id]/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { getUserFromRequest } from "@/lib/auth";
@@ -8,17 +6,22 @@ export async function PUT(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params;
-  const { new_code } = await req.json();
+  const user = await getUserFromRequest(req);
+  if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
 
-  if (!new_code || typeof new_code !== "string") {
-    return NextResponse.json({ error: "Missing or invalid new_code" }, { status: 400 });
+  const { id } = await context.params;
+  const { code, role } = await req.json();
+
+  if (!code || typeof code !== "string" || !role || typeof role !== "string") {
+    return NextResponse.json({ error: "Missing or invalid code/role" }, { status: 400 });
   }
 
   try {
     const result = await pool.query(
-      `UPDATE "ReferralCode" SET code = $1 WHERE id = $2 RETURNING *`,
-      [new_code.trim(), id]
+      `UPDATE "ReferralCode" SET code = $1, role = $2 WHERE id = $3 RETURNING *`,
+      [code.trim(), role.trim(), id]
     );
 
     if (result.rowCount === 0) {

@@ -1,9 +1,10 @@
 // File: src/app/api/admin/role-editor/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { getUserFromRequest } from "@/lib/auth";
 
-export async function GET(req: Request) {
+// 🔐 GET: Return all users with their current roles
+export async function GET(req: NextRequest) {
   const user = await getUserFromRequest(req);
 
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
@@ -18,6 +19,7 @@ export async function GET(req: Request) {
     `);
     return NextResponse.json(result.rows);
   } catch (err: any) {
+    console.error("Error fetching user roles:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

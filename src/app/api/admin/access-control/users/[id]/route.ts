@@ -7,13 +7,18 @@ export async function PUT(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
-  const { paid_level } = await req.json();
-
-  if (!paid_level) {
-    return NextResponse.json({ error: "Missing paid_level" }, { status: 400 });
-  }
 
   try {
+    const body = await req.json();
+    let { paid_level } = body;
+
+    if (typeof paid_level !== "string" || !paid_level.trim()) {
+      return NextResponse.json({ error: "Missing or invalid paid_level" }, { status: 400 });
+    }
+
+    // 🔠 Normalize capitalization (e.g., "free" -> "Free")
+    paid_level = paid_level.charAt(0).toUpperCase() + paid_level.slice(1).toLowerCase();
+
     const result = await pool.query(
       `UPDATE "User" SET paid_level = $1 WHERE id = $2 RETURNING id, email, paid_level`,
       [paid_level, id]
@@ -25,7 +30,7 @@ export async function PUT(
 
     return NextResponse.json({ updated: result.rows[0] });
   } catch (err: any) {
-    console.error("DB update error:", err);
+    console.error("❌ DB update error:", err);
     return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
 }

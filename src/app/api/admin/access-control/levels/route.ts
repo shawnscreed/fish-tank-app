@@ -1,10 +1,8 @@
-// File: src/app/api/admin/access-control/levels/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { getUserFromRequest } from "@/lib/auth";
 
-// ✅ GET: Fetch all membership levels from MembershipLevel table
+// ✅ GET: Fetch all membership levels
 export async function GET(req: NextRequest) {
   const user = await getUserFromRequest(req);
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
@@ -21,7 +19,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// ✅ POST: Add a new level to MembershipLevel table
+// ✅ POST: Add new membership level (normalized, de-duped)
 export async function POST(req: NextRequest) {
   const user = await getUserFromRequest(req);
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
@@ -30,11 +28,14 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const level = typeof body.level === "string" ? body.level.trim() : "";
+    let level = typeof body.level === "string" ? body.level.trim() : "";
 
     if (!level) {
       return NextResponse.json({ error: "Invalid level name" }, { status: 400 });
     }
+
+    // 🔠 Normalize case: "testuser" → "Testuser"
+    level = level.charAt(0).toUpperCase() + level.slice(1).toLowerCase();
 
     const result = await pool.query(
       `INSERT INTO "MembershipLevel" (name)

@@ -1,4 +1,5 @@
 // 📄 /src/app/api/admin/access-control/rescan/route.ts
+
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
@@ -26,20 +27,20 @@ export async function POST() {
 
     for (const route of routes) {
       const existing = await pool.query(
-        `SELECT * FROM "AccessControlRule" WHERE page_route = $1`,
+        `SELECT * FROM "PageAccessControl" WHERE page_route = $1`,
         [route]
       );
 
       if (existing.rows.length === 0) {
         await pool.query(
-          `INSERT INTO "AccessControlRule" (page_route, required_levels) VALUES ($1, $2)`,
-          [route, ['free']]
+          `INSERT INTO "PageAccessControl" (page_route, required_levels) VALUES ($1, $2)`,
+          [route, ['Free']] // Capitalized to match MembershipLevel values
         );
       }
     }
 
     const [rulesRes, usersRes, levelsRes] = await Promise.all([
-      pool.query(`SELECT id, page_route, required_levels FROM "AccessControlRule" ORDER BY page_route`),
+      pool.query(`SELECT id, page_route, required_levels FROM "PageAccessControl" ORDER BY page_route`),
       pool.query(`SELECT id, name, email, paid_level FROM "User" ORDER BY id`),
       pool.query(`SELECT name FROM "MembershipLevel" ORDER BY name ASC`),
     ]);
@@ -56,4 +57,3 @@ export async function POST() {
     return NextResponse.json({ error: "Failed to rescan pages" }, { status: 500 });
   }
 }
-

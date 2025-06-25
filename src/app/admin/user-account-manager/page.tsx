@@ -94,15 +94,13 @@ export default function UserAccountManagerPage() {
   };
 
   if (status === 'loading' || !currentUser) {
-    return (
-      <div className="p-6 text-gray-500">Checking session...</div>
-    );
+    return <div className="p-6 text-gray-500">Checking session...</div>;
   }
 
   return (
     <ClientLayoutWrapper user={currentUser}>
       <div className="p-6 max-w-6xl mx-auto">
-        <h1 className="text-2xl font-bold mb-4">User Account Manager</h1>
+        <h1 className="text-2xl font-bold mb-4">👤 User Account Manager</h1>
 
         <p className="text-gray-600 mb-4">
           Logged in as <strong>{currentUser.name || currentUser.email}</strong> ({currentUser.role})
@@ -149,6 +147,7 @@ export default function UserAccountManagerPage() {
               >
                 <option value="user">User</option>
                 <option value="beta_user">Beta User</option>
+                <option value="sub_admin">Sub Admin</option>
                 <option value="admin">Admin</option>
                 <option value="super_admin">Super Admin</option>
               </select>

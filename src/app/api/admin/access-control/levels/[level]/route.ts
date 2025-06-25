@@ -1,5 +1,3 @@
-// ✅ File: src/app/api/admin/access-control/levels/[level]/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { getUserFromRequest } from "@/lib/auth";
@@ -25,36 +23,36 @@ export async function PUT(
   }
 
   try {
-    await pool.query(
-      `UPDATE "MembershipLevel" SET name = $1 WHERE name = $2`,
-      [newLevel, oldLevel]
-    );
-
-    await pool.query(
-      `UPDATE "User" SET paid_level = $1 WHERE paid_level = $2`,
-      [newLevel, oldLevel]
-    );
-
-    await pool.query(
-      `UPDATE "PageAccessControl"
-       SET required_levels = array_replace(required_levels, $2, $1)
-       WHERE $2 = ANY(required_levels)`,
-      [newLevel, oldLevel]
-    );
+    await Promise.all([
+      pool.query(
+        `UPDATE "MembershipLevel" SET name = $1 WHERE name = $2`,
+        [newLevel, oldLevel]
+      ),
+      pool.query(
+        `UPDATE "User" SET paid_level = $1 WHERE paid_level = $2`,
+        [newLevel, oldLevel]
+      ),
+      pool.query(
+        `UPDATE "PageAccessControl"
+         SET required_levels = array_replace(required_levels, $2, $1)
+         WHERE $2 = ANY(required_levels)`,
+        [newLevel, oldLevel]
+      ),
+    ]);
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
-    console.error("Rename level failed:", err);
+    console.error("❌ Rename level failed:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
 
 // ✅ DELETE: Remove a level
 export async function DELETE(
-  req: NextRequest,
+  _req: NextRequest,
   context: { params: Promise<{ level: string }> }
 ) {
-  const user = await getUserFromRequest(req);
+  const user = await getUserFromRequest(_req);
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
@@ -63,26 +61,26 @@ export async function DELETE(
   const decodedLevel = decodeURIComponent(level);
 
   try {
-    await pool.query(
-      `UPDATE "PageAccessControl"
-       SET required_levels = array_remove(required_levels, $1)
-       WHERE $1 = ANY(required_levels)`,
-      [decodedLevel]
-    );
-
-    await pool.query(
-      `UPDATE "User" SET paid_level = NULL WHERE paid_level = $1`,
-      [decodedLevel]
-    );
-
-    await pool.query(
-      `DELETE FROM "MembershipLevel" WHERE name = $1`,
-      [decodedLevel]
-    );
+    await Promise.all([
+      pool.query(
+        `UPDATE "PageAccessControl"
+         SET required_levels = array_remove(required_levels, $1)
+         WHERE $1 = ANY(required_levels)`,
+        [decodedLevel]
+      ),
+      pool.query(
+        `UPDATE "User" SET paid_level = NULL WHERE paid_level = $1`,
+        [decodedLevel]
+      ),
+      pool.query(
+        `DELETE FROM "MembershipLevel" WHERE name = $1`,
+        [decodedLevel]
+      ),
+    ]);
 
     return NextResponse.json({ success: true });
   } catch (err: any) {
-    console.error("Delete level failed:", err);
+    console.error("❌ Delete level failed:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

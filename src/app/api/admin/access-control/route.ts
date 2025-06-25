@@ -1,5 +1,3 @@
-// File: src/app/api/admin/access-control/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { getUserFromRequest } from "@/lib/auth";
@@ -21,7 +19,7 @@ export async function GET(req: NextRequest) {
 
     const users = rawUsersRes.rows.map((u) => ({
       ...u,
-      paid_level: u.paid_level || "Free", // 👈 Default to Free if null
+      paid_level: u.paid_level || "Free",
     }));
 
     const levels = levelsRes.rows.map((r) => r.name);
@@ -40,7 +38,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// 🚀 PUT: Update access control rules
+// 🚀 PUT: Update access control rule for a page
 export async function PUT(req: NextRequest) {
   const user = await getUserFromRequest(req);
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
@@ -58,7 +56,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "Invalid data" }, { status: 400 });
     }
 
-    // 🔠 Normalize & Deduplicate
+    // Normalize and deduplicate
     const normalizedLevels = Array.from(
       new Set(
         required_levels.map(
@@ -68,13 +66,14 @@ export async function PUT(req: NextRequest) {
       )
     );
 
-    // ✅ Validate against DB-defined levels
+    // Validate against MembershipLevel table
     const validLevelsRes = await pool.query(`SELECT name FROM "MembershipLevel"`);
     const validLevels = validLevelsRes.rows.map((r) => r.name);
 
     const invalidLevels = normalizedLevels.filter(
       (lvl) => !validLevels.includes(lvl)
     );
+
     if (invalidLevels.length > 0) {
       return NextResponse.json(
         { error: `Invalid membership levels: ${invalidLevels.join(", ")}` },
@@ -82,7 +81,7 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    // 🔄 Try to update existing
+    // Attempt update
     const updateRes = await pool.query(
       `UPDATE "PageAccessControl"
        SET required_levels = $1
@@ -91,9 +90,9 @@ export async function PUT(req: NextRequest) {
       [normalizedLevels, page_route]
     );
 
-    let updated = updateRes.rows?.[0];
+    let updated = updateRes.rows[0];
 
-    // ➕ If not found, insert new
+    // If no record updated, insert new
     if (!updated) {
       const insertRes = await pool.query(
         `INSERT INTO "PageAccessControl" (page_route, required_levels)

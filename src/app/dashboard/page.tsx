@@ -13,8 +13,13 @@ type Role = "super_admin" | "sub_admin" | "admin" | "user" | "beta_user";
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session || !session.user?.id) {
-    console.warn("❌ No valid session or missing user ID");
+  // ✅ SAFETY CHECK: validate session and ensure user ID is a number
+  if (
+    !session ||
+    !session.user?.id ||
+    isNaN(Number(session.user.id))
+  ) {
+    console.warn("❌ Invalid or missing session.user.id:", session?.user);
     redirect("/login");
   }
 
@@ -26,6 +31,8 @@ export default async function DashboardPage() {
   };
 
   const userName = user.name || user.email;
+
+  console.log(`🔍 Loading tanks for user ID: ${user.id}`);
 
   const tankRes = await pool.query(
     `SELECT id, name, gallons, water_type FROM "Tank" WHERE user_id = $1`,
