@@ -17,20 +17,21 @@ interface JWTUser {
 export default async function TankDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const { id } = params;
+  const { id } = await params;
 
-
-const cookieStore = await cookies();
+ const cookieStore = await cookies(); // ✅ You must await this
 const token = cookieStore.get("next-auth.session-token")?.value;
+
+
 
   if (!token) {
     console.warn("❌ No token found");
     redirect("/login");
   }
 
-  let user: JWTUser;
+  let user: JWTUser | null = null;
   try {
     const { payload } = await jwtVerify(
       token,
@@ -41,6 +42,8 @@ const token = cookieStore.get("next-auth.session-token")?.value;
     console.error("❌ JWT verification failed:", err);
     redirect("/login");
   }
+
+  if (!user) redirect("/login");
 
   const tankId = Number(id);
 
