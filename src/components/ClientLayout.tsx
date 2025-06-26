@@ -22,7 +22,10 @@ export default function ClientLayout({ children, user }: ClientLayoutProps) {
 
   const menuItems: MenuItem[] = [
     { name: "Dashboard", href: "/dashboard" },
+    { name: "Products", href: "/dashboard/products" },
+
        { name: "Feedback", href: "/dashboard/feedback" },
+       
   ];
 
   const adminPages: MenuItem[] =
