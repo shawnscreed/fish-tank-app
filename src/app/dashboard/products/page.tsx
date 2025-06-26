@@ -4,10 +4,10 @@ export const dynamic = "force-dynamic";
 
 import { getUserFromServer } from "@/lib/auth-server";
 import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
-import ProductsClientPage from "@/components/ProductsClientPage"; // ✅ Make sure this exists
+import ProductsClientPage from "@/components/ProductsClientPage";
 
 export default async function ProductsPage() {
-  const user = await getUserFromServer();
+  const user = (await getUserFromServer())!; // ✅ Assert non-null (protected by redirect inside)
 
   return (
     <ClientLayoutWrapper user={user}>

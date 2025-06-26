@@ -1,25 +1,22 @@
-// File: src/app/api/admin/role-editor/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import pool from "@/lib/db";
-import { getUserFromServer } from "@/lib/auth-server";
+// Example fix: src/app/api/admin/role-editor/route.ts
 
-// 🔐 GET: Return all users with their current roles
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/serverAuthOptions";
+import pool from "@/lib/db";
+
 export async function GET(req: NextRequest) {
-  const user = await getUserFromServer();
+  const session = await getServerSession(authOptions);
+  const user = session?.user;
 
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
   try {
-    const result = await pool.query(`
-      SELECT id, name, email, role, created_at
-      FROM "User"
-      ORDER BY created_at DESC
-    `);
+    const result = await pool.query(`SELECT * FROM "Role" ORDER BY id ASC`);
     return NextResponse.json(result.rows);
   } catch (err: any) {
-    console.error("Error fetching user roles:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

@@ -1,31 +1,21 @@
-import NextAuth, { DefaultSession, DefaultUser } from "next-auth";
-import { JWT as DefaultJWT } from "next-auth/jwt";
+// File: src/lib/next-auth.d.ts
+
+import NextAuth from "next-auth";
 
 declare module "next-auth" {
-  interface Session extends DefaultSession {
+  interface Session {
     user: {
       id: number;
-      role: string;
       email: string;
       name?: string;
+      role?: string;
     };
   }
 
-  interface User extends DefaultUser {
+  interface User {
     id: number;
-    role: string;
     email: string;
     name?: string;
+    role?: string;
   }
 }
-
-declare module "next-auth/jwt" {
-  interface JWT extends DefaultJWT {
-    id: string; // ✅ fix: use string
-    role: string;
-    email: string;
-    name?: string;
-  }
-}
-
-export {}; // ✅ Ensures this file is treated as a module
