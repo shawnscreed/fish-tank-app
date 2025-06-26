@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
-import { getUserFromCookies } from "@/lib/auth";
+import { getUserFromServer } from "@/lib/auth-server"; // ✅
+
 
 export async function POST(req: NextRequest) {
-  const user = await getUserFromCookies();
+ const user = await getUserFromServer();
+
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();

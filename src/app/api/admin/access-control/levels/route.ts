@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
-import { getUserFromRequest } from "@/lib/auth";
+import { getUserFromServer } from "@/lib/auth-server";
 
 // ✅ GET: Fetch all membership levels
 export async function GET(req: NextRequest) {
-  const user = await getUserFromRequest();
+  const user = await getUserFromServer();
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
 
 // ✅ POST: Add new membership level (normalized, de-duped)
 export async function POST(req: NextRequest) {
-  const user = await getUserFromRequest();
+  const user = await getUserFromServer();
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }

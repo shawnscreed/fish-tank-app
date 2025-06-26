@@ -1,11 +1,11 @@
 // File: src/app/api/admin/role-editor/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
-import { getUserFromRequest } from "@/lib/auth";
+import { getUserFromServer } from "@/lib/auth-server";
 
 // 🔐 GET: Return all users with their current roles
 export async function GET(req: NextRequest) {
-  const user = await getUserFromRequest();
+  const user = await getUserFromServer();
 
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });

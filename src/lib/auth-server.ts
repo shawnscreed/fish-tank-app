@@ -1,7 +1,7 @@
 // 📄 File: src/lib/auth-server.ts
 
 import { getServerSession } from "next-auth";
-import { authOptions } from "./serverAuthOptions"; // ✅ fixed
+import { authOptions } from "./serverAuthOptions";
 import { redirect } from "next/navigation";
 
 export type Role = "user" | "admin" | "super_admin" | "sub_admin" | "beta_user";

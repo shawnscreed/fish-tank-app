@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/serverAuthOptions";
+// 📄 File: src/lib/auth.ts (Client-only)
 
 export type Role = "user" | "admin" | "super_admin" | "sub_admin" | "beta_user";
 
@@ -10,33 +9,7 @@ export interface JWTUser {
   name?: string;
 }
 
-// ✅ For server API routes
-export async function getUserFromRequest(): Promise<JWTUser | null> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return null;
-
-  return {
-    id: session.user.id,
-    email: session.user.email,
-    role: session.user.role as Role, // ✅ fix here
-    name: session.user.name || "",
-  };
-}
-
-// ✅ For server components (App Router)
-export async function getUserFromCookies(): Promise<JWTUser | null> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) return null;
-
-  return {
-    id: session.user.id,
-    email: session.user.email,
-    role: session.user.role as Role, // ✅ fix here
-    name: session.user.name || "",
-  };
-}
-
-// ✅ For client-side fetch (optional helper)
+// ✅ For client-side fetch (safe for use in "use client" components)
 export async function getUserFromClientCookies(): Promise<JWTUser | null> {
   try {
     const res = await fetch("/api/me");

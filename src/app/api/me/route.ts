@@ -1,9 +1,9 @@
 // ✅ File: src/app/api/me/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { getUserFromRequest } from "@/lib/auth";
+import { getUserFromServer } from "@/lib/auth-server";
 
 export async function GET(req: NextRequest) {
-  const user = await getUserFromRequest();
+  const user = await getUserFromServer();
   if (!user) {
     return NextResponse.json({ error: "Not logged in" }, { status: 401 });
   }

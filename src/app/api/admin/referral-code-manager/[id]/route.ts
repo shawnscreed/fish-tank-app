@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
-import { getUserFromRequest } from "@/lib/auth";
+import { getUserFromServer } from "@/lib/auth-server";
 
 export async function PUT(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const user = await getUserFromRequest();
+  const user = await getUserFromServer();
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }

@@ -1,16 +1,14 @@
 // 📄 File: src/app/page.tsx
 
-import { getUserFromCookies } from "@/lib/auth";
+// ✅ Corrected import
+import { getUserFromServer } from "@/lib/auth-server";
+
 import { redirect } from "next/navigation";
 import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
 import { JWTUser } from "@/lib/auth";
 
 export default async function HomePage() {
-  const user: JWTUser | null = await getUserFromCookies();
-
-  if (!user) {
-    redirect("/login");
-  }
+  const user: JWTUser = await getUserFromServer();
 
   return (
     <ClientLayoutWrapper user={user}>
