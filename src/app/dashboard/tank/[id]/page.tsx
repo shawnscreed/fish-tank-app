@@ -34,23 +34,29 @@ export default async function TankDetailPage({
 
   return (
     <ClientLayoutWrapper user={user}>
-    <div className="p-6 space-y-4">
-      {/* ✅ Reminder alert if any are due */}
-      <TankReminderAlert tankId={tankId} />
+      <div className="p-6 space-y-4">
+        {/* ✅ Reminder alert if any are due */}
+        <TankReminderAlert tankId={tankId} />
 
-      {/* ✅ Manual link to reminders page */}
-      <div className="flex justify-end">
-        <a
-          href={`/dashboard/tank/${tankId}/reminders`}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          🛠 View Maintenance Reminders
-        </a>
+        {/* ✅ Buttons */}
+        <div className="flex flex-col sm:flex-row gap-2 justify-end">
+          <a
+            href={`/dashboard/tank/${tankId}/reminders`}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-center"
+          >
+            🛠 View Maintenance Reminders
+          </a>
+          <a
+            href={`/dashboard/tank/${tankId}/timeline`}
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-center"
+          >
+            📅 View Tank Timeline
+          </a>
+        </div>
+
+        {/* Tank info */}
+        <TankDetail userId={user.id} tankId={tankId} />
       </div>
-
-      {/* Tank info */}
-      <TankDetail userId={user.id} tankId={tankId} />
-    </div>
-  </ClientLayoutWrapper>
+    </ClientLayoutWrapper>
   );
 }
