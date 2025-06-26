@@ -1,8 +1,8 @@
 "use client";
 
-
 import Link from "next/link";
 import { ReactNode } from "react";
+import { signOut } from "next-auth/react"; // ✅ added
 import { JWTUser } from "@/lib/auth";
 import UserStatus from "@/components/UserStatus";
 import { usePathname } from "next/navigation";
@@ -119,10 +119,15 @@ export default function ClientLayout({ children, user }: ClientLayoutProps) {
         </div>
 
         <div className="mt-6 text-sm text-gray-600">
-          <UserStatus/>
-          <form action="/api/logout" method="POST">
-            <button className="text-red-600 hover:underline">Logout</button>
-          </form>
+          <UserStatus />
+          <button
+            onClick={() =>
+              signOut({ callbackUrl: `${window.location.origin}/login` })
+            }
+            className="mt-2 text-red-600 hover:underline"
+          >
+            Logout
+          </button>
         </div>
       </aside>
 

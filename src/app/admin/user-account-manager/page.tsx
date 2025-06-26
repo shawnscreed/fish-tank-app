@@ -1,5 +1,3 @@
-// 📄 Page: /admin/user-account-manager/page.tsx
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -33,6 +31,7 @@ export default function UserAccountManagerPage() {
     role: 'user' as Role,
   });
   const [addError, setAddError] = useState<string | null>(null);
+  const [passwords, setPasswords] = useState<{ [id: number]: string }>({});
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -90,6 +89,44 @@ export default function UserAccountManagerPage() {
       fetchUsers();
     } catch (err: any) {
       setAddError(err.message || 'Unexpected error');
+    }
+  };
+
+  const handlePasswordChange = async (userId: number) => {
+    const newPassword = passwords[userId];
+    if (!newPassword || newPassword.length < 6) {
+      alert('Password must be at least 6 characters');
+      return;
+    }
+
+    const res = await fetch('/api/admin/user-account-manager', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, newPassword }),
+    });
+
+    if (res.ok) {
+      alert('Password updated');
+      setPasswords({ ...passwords, [userId]: '' });
+    } else {
+      const err = await res.json();
+      alert('Error: ' + err.error);
+    }
+  };
+
+  const handleDeleteUser = async (userId: number) => {
+    if (!confirm('Are you sure you want to delete this user?')) return;
+
+    const res = await fetch(`/api/admin/user-account-manager?userId=${userId}`, {
+      method: 'DELETE',
+    });
+
+    if (res.ok) {
+      alert('User deleted');
+      fetchUsers();
+    } else {
+      const err = await res.json();
+      alert('Error: ' + err.error);
     }
   };
 
@@ -167,33 +204,38 @@ export default function UserAccountManagerPage() {
         ) : error ? (
           <p className="text-red-600">Error: {error}</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full border text-sm">
-              <thead className="bg-gray-100 text-left">
-                <tr>
-                  <th className="p-3 border-b">ID</th>
-                  <th className="p-3 border-b">Name</th>
-                  <th className="p-3 border-b">Email</th>
-                  <th className="p-3 border-b">Role</th>
-                  <th className="p-3 border-b">Created At</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50 border-t">
-                    <td className="p-3">{user.id}</td>
-                    <td className="p-3">{user.name || 'Unnamed'}</td>
-                    <td className="p-3 font-mono">{user.email}</td>
-                    <td className="p-3 capitalize">{user.role}</td>
-                    <td className="p-3 text-gray-500">
-                      {user.created_at
-                        ? new Date(user.created_at).toLocaleString()
-                        : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="overflow-x-auto space-y-6">
+            {users.map((u) => (
+              <div key={u.id} className="border p-4 rounded bg-white shadow">
+                <p>
+                  <strong>{u.name || 'Unnamed'}</strong> — {u.email} ({u.role})
+                </p>
+
+                <div className="mt-3 flex flex-col sm:flex-row sm:items-center gap-2">
+                  <input
+                    type="password"
+                    placeholder="New password"
+                    value={passwords[u.id] || ''}
+                    onChange={(e) =>
+                      setPasswords({ ...passwords, [u.id]: e.target.value })
+                    }
+                    className="border px-2 py-1 rounded"
+                  />
+                  <button
+                    onClick={() => handlePasswordChange(u.id)}
+                    className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                  >
+                    Change Password
+                  </button>
+                  <button
+                    onClick={() => handleDeleteUser(u.id)}
+                    className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+                  >
+                    Delete User
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>

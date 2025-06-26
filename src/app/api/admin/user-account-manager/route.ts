@@ -49,3 +49,52 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+export async function PUT(req: NextRequest) {
+  const user = await getUserFromRequest();
+
+  if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
+  const { userId, newPassword } = await req.json();
+
+  if (!userId || !newPassword || newPassword.length < 6) {
+    return NextResponse.json({ error: "Missing or invalid fields" }, { status: 400 });
+  }
+
+  try {
+    const password_hash = await bcrypt.hash(newPassword, 10);
+
+    await pool.query(
+      `UPDATE "User" SET password_hash = $1 WHERE id = $2`,
+      [password_hash, userId]
+    );
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    console.error("Password update error:", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  const user = await getUserFromRequest();
+
+  if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+
+  const userId = Number(req.nextUrl.searchParams.get("userId"));
+
+  if (!userId || isNaN(userId)) {
+    return NextResponse.json({ error: "Invalid or missing user ID" }, { status: 400 });
+  }
+
+  try {
+    await pool.query(`DELETE FROM "User" WHERE id = $1`, [userId]);
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    console.error("Delete user error:", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
+}
