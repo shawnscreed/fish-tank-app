@@ -2,11 +2,11 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
-import { getUserFromServer } from "@/lib/auth-server";
-import bcrypt from "bcryptjs"; // make sure it's installed
+import { getUserFromRequest } from "@/lib/auth-server";
+import bcrypt from "bcryptjs";
 
 export async function GET(req: NextRequest) {
-  const user = await getUserFromServer();
+  const user = await getUserFromRequest(req); // ✅ fixed
 
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getUserFromServer();
+  const user = await getUserFromRequest(req); // ✅ fixed
 
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -49,8 +49,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+
 export async function PUT(req: NextRequest) {
-  const user = await getUserFromServer();
+  const user = await getUserFromRequest(req); // ✅ fixed
 
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -78,7 +79,7 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const user = await getUserFromServer();
+  const user = await getUserFromRequest(req); // ✅ fixed
 
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });

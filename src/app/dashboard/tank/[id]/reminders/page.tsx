@@ -30,17 +30,24 @@ export default function TankRemindersPage() {
   const [hasDueReminders, setHasDueReminders] = useState(false);
 
   const loadReminders = async () => {
-    const res = await fetch(`/api/tank-reminder?tank_id=${tankId}`);
-    const data: Reminder[] = await res.json();
-    setReminders(data);
-    setHasDueReminders(
-      data.some((r) => new Date(r.next_due) <= new Date())
-    );
+    try {
+      const res = await fetch(`/api/tank-reminder?tank_id=${tankId}`);
+      const data: Reminder[] = await res.json();
+      console.log("📥 Loaded reminders:", data);
+      setReminders(data);
+      setHasDueReminders(data.some((r) => new Date(r.next_due) <= new Date()));
+    } catch (err) {
+      console.error("❌ Error loading reminders:", err);
+    }
   };
 
   useEffect(() => {
     const load = async () => {
       const u = await getUserFromClientCookies();
+      if (!u) {
+        console.warn("❌ No session found – redirecting or showing error.");
+        return;
+      }
       setUser(u);
       await loadReminders();
     };
@@ -48,11 +55,17 @@ export default function TankRemindersPage() {
   }, [tankId]);
 
   const handleAdd = async () => {
-    await fetch(`/api/tank/${tankId}/reminders`, {
+    const payload = {
+      ...newReminder,
+      frequency_days: Number(newReminder.frequency_days),
+      tank_id: tankId,
+    };
+    console.log("📤 Sending new reminder:", payload);
 
+    await fetch(`/api/tank/${tankId}/reminders`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...newReminder, tank_id: tankId }),
+      body: JSON.stringify(payload),
     });
     setNewReminder({ type: "", frequency_days: "", notes: "" });
     await loadReminders();
@@ -60,7 +73,6 @@ export default function TankRemindersPage() {
 
   const handleDone = async (rid: number) => {
     await fetch(`/api/tank/${tankId}/reminders`, {
-
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: rid }),
@@ -70,7 +82,6 @@ export default function TankRemindersPage() {
 
   const handleDelete = async (rid: number) => {
     await fetch(`/api/tank/${tankId}/reminders`, {
-
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: rid }),
@@ -78,7 +89,13 @@ export default function TankRemindersPage() {
     await loadReminders();
   };
 
-  if (!user) return <div className="p-6">Loading...</div>;
+  if (!user) {
+    return (
+      <div className="p-6 text-red-600">
+        ⚠️ Unable to load session. Please <Link href="/login">log in</Link>.
+      </div>
+    );
+  }
 
   return (
     <ClientLayoutWrapper user={user}>
@@ -166,7 +183,10 @@ export default function TankRemindersPage() {
         </table>
 
         <div className="mt-6">
-          <Link href={`/dashboard/tank/${tankId}`} className="text-blue-600 underline">
+          <Link
+            href={`/dashboard/tank/${tankId}`}
+            className="text-blue-600 underline"
+          >
             ← Back to Tank
           </Link>
         </div>
