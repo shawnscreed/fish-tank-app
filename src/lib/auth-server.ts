@@ -1,8 +1,8 @@
 // 📄 File: src/lib/auth-server.ts
 
-import { getServerSession } from "next-auth";
-import { authOptions } from "./serverAuthOptions";
+import { getToken } from "next-auth/jwt";
 import { redirect } from "next/navigation";
+import { NextRequest } from "next/server";
 
 export type Role = "user" | "admin" | "super_admin" | "sub_admin" | "beta_user";
 
@@ -15,23 +15,38 @@ export interface JWTUser {
 
 const validRoles: Role[] = ["user", "admin", "super_admin", "sub_admin", "beta_user"];
 
+// ✅ For Server Components (SSR pages)
 export async function getUserFromServer(): Promise<JWTUser> {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user || !session.user.id || !session.user.email) {
+  const token = await getToken({ req: null as any }); // `req` must be passed as null in SSR
+  if (!token?.id || !token.email) {
     console.warn("🔒 No valid session found – redirecting");
     redirect("/login");
   }
 
-  const id = Number(session.user.id);
-  const role = validRoles.includes(session.user.role as Role)
-    ? (session.user.role as Role)
-    : "user";
+  const id = Number(token.id);
+  const role = validRoles.includes(token.role as Role) ? (token.role as Role) : "user";
 
   return {
     id,
-    email: session.user.email,
+    email: token.email,
     role,
-    name: session.user.name ?? "",
+    name: token.name ?? "",
+  };
+}
+
+// ✅ For API Routes
+export async function getUserFromRequest(req: NextRequest): Promise<JWTUser | null> {
+  const token = await getToken({ req });
+
+  if (!token?.id || !token.email) return null;
+
+  const id = Number(token.id);
+  const role = validRoles.includes(token.role as Role) ? (token.role as Role) : "user";
+
+  return {
+    id,
+    email: token.email,
+    role,
+    name: token.name ?? "",
   };
 }

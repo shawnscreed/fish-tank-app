@@ -1,8 +1,7 @@
 // 📄 File: src/app/page.tsx
+export const dynamic = "force-dynamic"; // 👈 Required for server-side getToken()
 
-// ✅ Corrected import
 import { getUserFromServer } from "@/lib/auth-server";
-
 import { redirect } from "next/navigation";
 import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
 import { JWTUser } from "@/lib/auth";

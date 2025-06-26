@@ -1,4 +1,5 @@
 // 📄 File: src/app/plant/page.tsx
+export const dynamic = "force-dynamic"; // ⛔ prevents SSG and fixes getToken() error
 
 import { redirect } from "next/navigation";
 import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";

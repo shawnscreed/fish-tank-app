@@ -1,9 +1,10 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
-import { getUserFromServer } from "@/lib/auth-server";
+import { getUserFromRequest } from "@/lib/auth-server"; // ✅ correct method for API
 
 export async function GET(req: NextRequest) {
-  const user = await getUserFromServer();
+  const user = await getUserFromRequest(req); // ✅ pass the request here
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {

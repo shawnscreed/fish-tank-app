@@ -1,4 +1,5 @@
 // 📄 File: src/app/fish/page.tsx
+export const dynamic = "force-dynamic";
 
 import { getUserFromServer } from "@/lib/auth-server";
 import { redirect } from "next/navigation";

@@ -48,7 +48,8 @@ export default function TankRemindersPage() {
   }, [tankId]);
 
   const handleAdd = async () => {
-    await fetch("/api/tank-reminder", {
+    await fetch(`/api/tank/${tankId}/reminders`, {
+
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...newReminder, tank_id: tankId }),
@@ -58,7 +59,8 @@ export default function TankRemindersPage() {
   };
 
   const handleDone = async (rid: number) => {
-    await fetch("/api/tank-reminder", {
+    await fetch(`/api/tank/${tankId}/reminders`, {
+
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: rid }),
@@ -67,7 +69,8 @@ export default function TankRemindersPage() {
   };
 
   const handleDelete = async (rid: number) => {
-    await fetch("/api/tank-reminder", {
+    await fetch(`/api/tank/${tankId}/reminders`, {
+
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: rid }),

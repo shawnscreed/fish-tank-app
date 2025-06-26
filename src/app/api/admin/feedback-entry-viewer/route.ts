@@ -2,10 +2,10 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
-import { getUserFromServer } from "@/lib/auth-server";
+import { getUserFromRequest } from "@/lib/auth-server"; // ✅ Corrected import
 
 export async function GET(req: NextRequest) {
-  const user = await getUserFromServer();
+  const user = await getUserFromRequest(req);
 
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
