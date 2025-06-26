@@ -4,17 +4,7 @@ import pool from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/serverAuthOptions";
 
-/**
- * GET /api/products
- * Returns the list of chemicals that are flagged as in_use = TRUE.
- * Response shape:
- *   [
- *     { id: 1, name: "Prime", buy_url: "https://...", notes: "Water conditioner" },
- *     ...
- *   ]
- */
 export async function GET(_req: NextRequest) {
-  // 🔐 Require an authenticated session (any role)
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -25,8 +15,8 @@ export async function GET(_req: NextRequest) {
       SELECT
         id,
         name,
-        COALESCE(buy_url, '')  AS buy_url,
-        COALESCE(notes,    '') AS notes
+        COALESCE(purchase_link, '') AS buy_url,
+        COALESCE(notes, '') AS notes
       FROM "Chemical"
       WHERE in_use IS TRUE
       ORDER BY name ASC
