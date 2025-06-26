@@ -14,6 +14,7 @@ interface FeedbackEntry {
   email?: string;
   message: string;
   created_at: string;
+  tank_id?: number;
 }
 
 export default function AdminFeedbackEntryViewerPage() {
@@ -33,6 +34,7 @@ export default function AdminFeedbackEntryViewerPage() {
   const [data, setData] = useState<FeedbackEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState("");
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -45,10 +47,12 @@ export default function AdminFeedbackEntryViewerPage() {
       fetch("/api/admin/feedback-entry-viewer")
         .then((res) => res.json())
         .then((json) => {
-          if (Array.isArray(json)) {
-            setData(json);
-          } else if (Array.isArray(json.data)) {
-            setData(json.data);
+          const entries = Array.isArray(json) ? json : json.data;
+          if (Array.isArray(entries)) {
+            const sorted = entries.sort(
+              (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
+            setData(sorted);
           } else {
             setError("Unexpected response format.");
           }
@@ -63,6 +67,12 @@ export default function AdminFeedbackEntryViewerPage() {
     }
   }, [status]);
 
+  const filteredData = data.filter(
+    (entry) =>
+      entry.message.toLowerCase().includes(filter.toLowerCase()) ||
+      entry.email?.toLowerCase().includes(filter.toLowerCase())
+  );
+
   if (status === "loading" || !currentUser) {
     return (
       <ClientLayoutWrapper user={currentUser || { id: 0, email: "", role: "user", name: "" }}>
@@ -76,33 +86,52 @@ export default function AdminFeedbackEntryViewerPage() {
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-4">Admin – Feedback Viewer</h1>
 
+        <input
+          type="text"
+          placeholder="🔍 Filter by message or email"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          className="mb-4 p-2 border rounded w-full max-w-md"
+        />
+
         {loading ? (
           <p className="text-gray-500">Loading feedback...</p>
         ) : error ? (
           <p className="text-red-600">{error}</p>
-        ) : data.length === 0 ? (
+        ) : filteredData.length === 0 ? (
           <p className="text-gray-600">No feedback found.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full border border-gray-300 rounded shadow">
+            <table className="min-w-full border border-gray-300 rounded shadow text-sm">
               <thead>
-                <tr className="bg-gray-100 text-left text-sm font-semibold">
+                <tr className="bg-gray-100 text-left font-semibold">
                   <th className="p-2 border">Name</th>
                   <th className="p-2 border">Email</th>
                   <th className="p-2 border">Feedback</th>
                   <th className="p-2 border">Date</th>
+                  <th className="p-2 border">Tank</th>
                 </tr>
               </thead>
               <tbody>
-                {data.map((entry) => (
-                  <tr key={entry.id} className="text-sm hover:bg-gray-50">
+                {filteredData.map((entry) => (
+                  <tr key={entry.id} className="hover:bg-gray-50">
                     <td className="p-2 border">{entry.name || "Anonymous"}</td>
                     <td className="p-2 border">{entry.email || "N/A"}</td>
-                    <td className="p-2 border max-w-xs overflow-auto whitespace-pre-wrap">
-                      {entry.message}
-                    </td>
+                    <td className="p-2 border max-w-xs whitespace-pre-wrap">{entry.message}</td>
                     <td className="p-2 border">
                       {new Date(entry.created_at).toLocaleString()}
+                    </td>
+                    <td className="p-2 border">
+                      {entry.tank_id ? (
+                        <a
+                          href={`/dashboard/tank/${entry.tank_id}`}
+                          className="text-blue-600 underline"
+                        >
+                          View Tank
+                        </a>
+                      ) : (
+                        "N/A"
+                      )}
                     </td>
                   </tr>
                 ))}

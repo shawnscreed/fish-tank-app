@@ -37,19 +37,20 @@ export async function GET(
 
     // 2) Fish added
     const fish = await pool.query(
-      `
-      SELECT
-        tf.id,
-        'fish_added' AS type,
-        tf.created_at AS date,
-        CONCAT(f."common_name", ' (qty ',
-               COALESCE(tf.quantity, 1), ') added') AS summary
-      FROM "TankFish" tf
-      JOIN "Fish" f ON f.id = tf.fish_id
-      WHERE tf.tank_id = $1
-      `,
-      [tankId]
-    );
+  `
+  SELECT
+    tf.id,
+    'fish_added' AS type,
+    tf.created_at AS date,
+    COALESCE(f."common_name", 'Unknown Fish') || ' (qty ' ||
+      COALESCE(tf.quantity, 1) || ') added' AS summary
+  FROM "TankFish" tf
+  LEFT JOIN "Fish" f ON f.id = tf.fish_id
+  WHERE tf.tank_id = $1
+  `,
+  [tankId]
+);
+
 
     // Merge & sort DESC by date
     const events = [...water.rows, ...fish.rows].sort(
