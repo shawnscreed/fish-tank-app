@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/serverAuthOptions";
 import { redirect } from "next/navigation";
 import TankDetail from "@/components/TankDetail";
 import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
+import TankReminderAlert from "@/components/TankReminderAlert"; // ✅ NEW: Client-side alert
 
 type Role = "super_admin" | "sub_admin" | "admin" | "user" | "beta_user";
 
@@ -33,7 +34,11 @@ export default async function TankDetailPage({
 
   return (
     <ClientLayoutWrapper user={user}>
-      <div className="p-6">
+      <div className="p-6 space-y-4">
+        {/* ✅ Renders alert and link if reminders are due */}
+        <TankReminderAlert tankId={tankId} />
+
+        {/* Tank info */}
         <TankDetail userId={user.id} tankId={tankId} />
       </div>
     </ClientLayoutWrapper>
