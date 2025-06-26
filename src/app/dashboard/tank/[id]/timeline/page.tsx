@@ -9,7 +9,7 @@ import Link from "next/link";
 
 interface TankEvent {
   id: number;
-  type: string;
+  type: string;   // e.g. "water_test", "fish_added", …
   date: string;
   summary: string;
 }
@@ -19,14 +19,16 @@ export default function TankTimelinePage() {
   const tankId = params.id;
 
   const { data: session, status } = useSession();
-  const [events, setEvents] = useState<TankEvent[]>([]);
-  const [error, setError]   = useState<string | null>(null);
+  const [events, setEvents]   = useState<TankEvent[]>([]);
+  const [error,  setError]    = useState<string | null>(null);
 
-  // Fetch timeline after auth
+  // ────────────────────────
+  // Fetch events after auth
+  // ────────────────────────
   useEffect(() => {
     if (status !== "authenticated") return;
 
-    async function load() {
+    (async () => {
       try {
         const res = await fetch(`/api/tank/${tankId}/timeline`);
         if (!res.ok) throw new Error(await res.text());
@@ -35,23 +37,31 @@ export default function TankTimelinePage() {
         console.error("timeline fetch:", e);
         setError(e.message ?? "Failed to load timeline");
       }
-    }
-    load();
+    })();
   }, [status, tankId]);
 
-  // -------- UI --------
-  if (status === "loading")
-    return <div className="p-6">Checking session…</div>;
-  if (!session?.user)
-    return <div className="p-6">Unauthorized – please log in.</div>;
+  // ────────────────────────
+  // Filter OUT water-test events
+  // ────────────────────────
+  const visibleEvents = events.filter(
+    (ev) => ev.type !== "water_test" && ev.type !== "WaterTest"
+  );
+  /* 
+     To re-enable later, just replace `visibleEvents` with `events`
+     wherever it’s used, or remove the filter line above.
+  */
+
+  // ─── UI guards ─────────────────────────────────────────────
+  if (status === "loading")  return <div className="p-6">Checking session…</div>;
+  if (!session?.user)        return <div className="p-6">Unauthorized – please log in.</div>;
 
   return (
     <ClientLayoutWrapper
       user={{
-        id: Number((session.user as any).id),
+        id:   Number((session.user as any).id),
         email: session.user.email!,
-        name: session.user.name ?? "",
-        role: (session.user as any).role ?? "user",
+        name:  session.user.name ?? "",
+        role:  (session.user as any).role ?? "user",
       }}
     >
       <div className="p-6 max-w-4xl mx-auto">
@@ -62,13 +72,11 @@ export default function TankTimelinePage() {
 
         {error ? (
           <p className="text-red-600">{error}</p>
-        ) : events.length === 0 ? (
-          <p className="text-gray-500 italic">
-            No events found for this tank yet.
-          </p>
+        ) : visibleEvents.length === 0 ? (
+          <p className="text-gray-500 italic">No events found for this tank yet.</p>
         ) : (
           <ol className="relative border-l border-blue-300 pl-4 space-y-6">
-            {events.map((ev) => (
+            {visibleEvents.map((ev) => (
               <li key={ev.id} className="ml-4">
                 <div className="absolute -left-1.5 mt-1.5 w-3 h-3 bg-blue-600 rounded-full" />
                 <time className="block mb-1 text-sm font-medium text-blue-800">
