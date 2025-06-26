@@ -3,6 +3,7 @@ import { AuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import pool from "@/lib/db";
+import bcrypt from "bcryptjs"; // ✅ moved to top-level scope
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -18,20 +19,25 @@ export const authOptions: AuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials) return null;
+
         const result = await pool.query(
-          `SELECT * FROM "User" WHERE email = $1 AND password_hash = crypt($2, password_hash)`,
-          [credentials.email, credentials.password]
+          `SELECT * FROM "User" WHERE email = $1`,
+          [credentials.email]
         );
-        if (result.rows.length > 0) {
-          const user = result.rows[0];
-          return {
-            id: user.id.toString(),
-            name: user.name ?? undefined,
-            email: user.email,
-            role: user.role,
-          };
-        }
-        return null;
+
+        if (result.rows.length === 0) return null;
+
+        const user = result.rows[0];
+
+        const isValid = await bcrypt.compare(credentials.password, user.password_hash);
+        if (!isValid) return null;
+
+        return {
+          id: user.id.toString(),
+          name: user.name ?? undefined,
+          email: user.email,
+          role: user.role,
+        };
       },
     }),
   ],
