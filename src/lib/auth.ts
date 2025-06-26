@@ -1,7 +1,5 @@
-import { jwtVerify, JWTPayload } from "jose";
-import { NextRequest } from "next/server";
-
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/serverAuthOptions";
 
 export type Role = "user" | "admin" | "super_admin" | "sub_admin" | "beta_user";
 
@@ -12,48 +10,33 @@ export interface JWTUser {
   name?: string;
 }
 
-async function decodeUser(token: string): Promise<JWTUser | null> {
-  try {
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(JWT_SECRET));
-    const possibleUser = payload as JWTPayload & Partial<JWTUser>;
+// ✅ For server API routes
+export async function getUserFromRequest(): Promise<JWTUser | null> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return null;
 
-    if (
-      (typeof possibleUser.id === "number" || typeof possibleUser.id === "string") &&
-      typeof possibleUser.email === "string" &&
-      typeof possibleUser.role === "string"
-    ) {
-      return {
-        id: Number(possibleUser.id),
-        email: String(possibleUser.email),
-        role: possibleUser.role as Role,
-        name: possibleUser.name || "",
-      };
-    }
-  } catch (err) {
-    console.error("JWT verification failed", err);
-  }
-  return null;
+  return {
+    id: session.user.id,
+    email: session.user.email,
+    role: session.user.role as Role, // ✅ fix here
+    name: session.user.name || "",
+  };
 }
 
-export async function getUserFromRequest(req: NextRequest): Promise<JWTUser | null> {
-  const token = req.cookies.get("token")?.value;
-  if (!token) return null;
-  return decodeUser(token);
-}
-
+// ✅ For server components (App Router)
 export async function getUserFromCookies(): Promise<JWTUser | null> {
-  if (!process.env.NEXT_RUNTIME || process.env.NEXT_RUNTIME !== "nodejs") {
-    throw new Error("getUserFromCookies can only be used in App Router server components");
-  }
+  const session = await getServerSession(authOptions);
+  if (!session?.user) return null;
 
-  const { cookies } = await import("next/headers");
-  const cookieStore = await cookies(); // ✅ FIXED: Added await
-  const token = cookieStore.get("token")?.value;
-
-  if (!token) return null;
-  return decodeUser(token);
+  return {
+    id: session.user.id,
+    email: session.user.email,
+    role: session.user.role as Role, // ✅ fix here
+    name: session.user.name || "",
+  };
 }
 
+// ✅ For client-side fetch (optional helper)
 export async function getUserFromClientCookies(): Promise<JWTUser | null> {
   try {
     const res = await fetch("/api/me");

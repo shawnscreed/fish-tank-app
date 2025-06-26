@@ -1,4 +1,4 @@
-"use client";
+
 
 // Page: app/work/[id]/page.tsx - Displays and manages a tank's assigned fish, plants, inverts, coral, and includes water test logging link.
 

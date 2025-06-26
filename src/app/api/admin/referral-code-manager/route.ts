@@ -5,7 +5,7 @@ import pool from "@/lib/db";
 import { getUserFromRequest } from "@/lib/auth";
 
 export async function GET(req: NextRequest) {
-  const user = await getUserFromRequest(req);
+  const user = await getUserFromRequest();
 
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getUserFromRequest(req);
+  const user = await getUserFromRequest();
 
   if (!user || (user.role !== "admin" && user.role !== "super_admin")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });

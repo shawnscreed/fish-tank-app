@@ -3,7 +3,7 @@ import pool from "@/lib/db";
 import { getUserFromRequest } from "@/lib/auth";
 
 export async function PUT(req: NextRequest) {
-  const user = await getUserFromRequest(req);
+  const user = await getUserFromRequest();
   if (!user || !["admin", "super_admin"].includes(user.role)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
