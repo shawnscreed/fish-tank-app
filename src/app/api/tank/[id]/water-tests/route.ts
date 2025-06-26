@@ -9,7 +9,7 @@ export async function GET(
   const { id } = await context.params;
   try {
     const result = await pool.query(
-      `SELECT * FROM "TankWaterTest" WHERE tank_id = $1 ORDER BY tested_at DESC`,
+      `SELECT * FROM "TankWaterTest" WHERE tank_id = $1 ORDER BY test_date DESC`,
       [id]
     );
     return NextResponse.json(result.rows);
@@ -27,7 +27,6 @@ export async function POST(
   const { id } = await context.params;
 
   const body = await req.json();
-
   const {
     ph,
     hardness,
@@ -39,13 +38,15 @@ export async function POST(
   } = body;
 
   try {
-    await pool.query(
-      `INSERT INTO "TankWaterTest" (tank_id, ph, hardness, salinity, ammonia, nitrite, nitrate, temperature)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+    const insert = await pool.query(
+      `INSERT INTO "TankWaterTest" 
+         (tank_id, ph, hardness, salinity, ammonia, nitrite, nitrate, temperature)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING *`,
       [id, ph, hardness, salinity, ammonia, nitrite, nitrate, temperature]
     );
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json(insert.rows[0]);
   } catch (err: any) {
     console.error("POST /api/tank/[id]/water-tests error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });

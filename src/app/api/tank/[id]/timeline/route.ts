@@ -26,7 +26,7 @@ export async function GET(
       SELECT
         id,
         'water_test'  AS type,
-        created_at    AS date,
+        'test_date'    AS date,
         FORMAT('pH: %s | NH₃: %s | NO₂: %s | NO₃: %s',
                ph, ammonia, nitrite, nitrate) AS summary
       FROM "TankWaterTest"
