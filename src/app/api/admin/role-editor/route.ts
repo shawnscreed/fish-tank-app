@@ -1,9 +1,9 @@
-// Example fix: src/app/api/admin/role-editor/route.ts
+// 📄 src/app/api/admin/role-editor/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
+import pool from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/serverAuthOptions";
-import pool from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -14,9 +14,14 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const result = await pool.query(`SELECT * FROM "Role" ORDER BY id ASC`);
-    return NextResponse.json(result.rows);
+    const result = await pool.query(`
+      SELECT DISTINCT role FROM "User"
+      ORDER BY role ASC
+    `);
+
+    return NextResponse.json(result.rows); // returns [{ role: "admin" }, ...]
   } catch (err: any) {
+    console.error("❌ Error fetching roles:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
