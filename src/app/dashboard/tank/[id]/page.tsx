@@ -34,13 +34,23 @@ export default async function TankDetailPage({
 
   return (
     <ClientLayoutWrapper user={user}>
-      <div className="p-6 space-y-4">
-        {/* ✅ Renders alert and link if reminders are due */}
-        <TankReminderAlert tankId={tankId} />
+    <div className="p-6 space-y-4">
+      {/* ✅ Reminder alert if any are due */}
+      <TankReminderAlert tankId={tankId} />
 
-        {/* Tank info */}
-        <TankDetail userId={user.id} tankId={tankId} />
+      {/* ✅ Manual link to reminders page */}
+      <div className="flex justify-end">
+        <a
+          href={`/dashboard/tank/${tankId}/reminders`}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          🛠 View Maintenance Reminders
+        </a>
       </div>
-    </ClientLayoutWrapper>
+
+      {/* Tank info */}
+      <TankDetail userId={user.id} tankId={tankId} />
+    </div>
+  </ClientLayoutWrapper>
   );
 }
