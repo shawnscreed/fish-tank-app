@@ -1,3 +1,4 @@
+// 📄 File: src/app/api/tank/[id]/timeline/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { getServerSession } from "next-auth";
@@ -20,13 +21,13 @@ export async function GET(
   }
 
   try {
-    // 1) Water-tests
+    // ✅ 1) Water-tests
     const water = await pool.query(
       `
       SELECT
         id,
-        'water_test'  AS type,
-        'test_date'    AS date,
+        'water_test' AS type,
+        test_date    AS date,
         FORMAT('pH: %s | NH₃: %s | NO₂: %s | NO₃: %s',
                ph, ammonia, nitrite, nitrate) AS summary
       FROM "TankWaterTest"
@@ -35,27 +36,25 @@ export async function GET(
       [tankId]
     );
 
-    // 2) Fish added
-    const fish = await pool.query(
-  `
-  SELECT
-    tf.id,
-    'fish_added' AS type,
-    tf.created_at AS date,
-    COALESCE(f."common_name", 'Unknown Fish') || ' (qty ' ||
-      COALESCE(tf.quantity, 1) || ') added' AS summary
-  FROM "TankFish" tf
-  LEFT JOIN "Fish" f ON f.id = tf.fish_id
-  WHERE tf.tank_id = $1
-  `,
-  [tankId]
-);
+    // ❌ 2) Fish added – temporarily disabled due to missing column error
+    // const fish = await pool.query(
+    //   `
+    //   SELECT
+    //     tf.id,
+    //     'fish_added' AS type,
+    //     tf.created_at AS date,
+    //     COALESCE(f."common_name", 'Unknown Fish') || ' (qty ' ||
+    //       COALESCE(tf.quantity, 1) || ') added' AS summary
+    //   FROM "TankFish" tf
+    //   LEFT JOIN "Fish" f ON f.id = tf.fish_id
+    //   WHERE tf.tank_id = $1
+    //   `,
+    //   [tankId]
+    // );
 
-
-    // Merge & sort DESC by date
-    const events = [...water.rows, ...fish.rows].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+    // ✅ Only water tests for now
+    const events = [...water.rows]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     return NextResponse.json(events);
   } catch (err: any) {
