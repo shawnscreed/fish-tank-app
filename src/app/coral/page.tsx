@@ -1,3 +1,5 @@
+// 📄 File: src/app/coral/page.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -90,6 +92,10 @@ export default function CoralPage() {
     : null;
 
   if (!user) return <div className="p-6">Unauthorized</div>;
+
+  if (user.role !== "admin" && user.role !== "super_admin") {
+    return <div className="p-6 text-red-600">Access denied: Admins only</div>;
+  }
 
   return (
     <ClientLayoutWrapper user={user}>

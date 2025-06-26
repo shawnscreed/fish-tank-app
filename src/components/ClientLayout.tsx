@@ -22,11 +22,7 @@ export default function ClientLayout({ children, user }: ClientLayoutProps) {
 
   const menuItems: MenuItem[] = [
     { name: "Dashboard", href: "/dashboard" },
-    { name: "Coral", href: "/coral" },
-    { name: "Tank", href: "/tank" },
-    { name: "Work", href: "/work" },
-    { name: "Chemicals", href: "/chemicals" },
-    { name: "Feedback", href: "/dashboard/feedback" },
+       { name: "Feedback", href: "/dashboard/feedback" },
   ];
 
   const adminPages: MenuItem[] =
@@ -35,6 +31,10 @@ export default function ClientLayout({ children, user }: ClientLayoutProps) {
           { name: "Fish", href: "/fish" },
           { name: "Plant", href: "/plant" },
           { name: "Inverts", href: "/inverts" },
+           { name: "Coral", href: "/coral" },
+    { name: "Tank", href: "/tank" },
+    { name: "Work", href: "/work" },
+    { name: "Chemicals", href: "/chemicals" },
         ]
       : [];
 

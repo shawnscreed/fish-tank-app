@@ -16,6 +16,13 @@ export default async function ChemicalsPage() {
   }
 
   const { id, name, email, role } = session.user as any;
+
+  // 🔒 Restrict to admin or super_admin
+  if (role !== "admin" && role !== "super_admin") {
+    console.warn("🔒 Unauthorized access by role:", role);
+    redirect("/unauthorized");
+  }
+
   const currentUser: JWTUser = {
     id: Number(id),
     name,
