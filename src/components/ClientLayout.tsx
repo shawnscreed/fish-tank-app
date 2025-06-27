@@ -49,6 +49,7 @@ export default function ClientLayout({ children, user }: ClientLayoutProps) {
           { name: "Role Editor", href: "/admin/role-editor" },
           { name: "Referral Codes", href: "/admin/referral-code-manager" },
           { name: "Feedback Entries", href: "/admin/feedback-entry-viewer" },
+           { name: "Compatibility", href: "/admin/compatibility" },
         ]
       : [];
 
