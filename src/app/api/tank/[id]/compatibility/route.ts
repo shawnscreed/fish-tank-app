@@ -1,19 +1,20 @@
-import { NextRequest, NextResponse } from "next/server";
+// 📄 src/app/api/tank/[id]/compatibility/route.ts
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/serverAuthOptions";
 import pool from "@/lib/db";
 
-// ✅ Correct route signature!
 export async function GET(
-  req: NextRequest,
+  _req: Request, // ✅ Use the built-in Fetch API Request
   context: { params: { id: string } }
 ) {
-  const tankId = Number(context.params.id); // ✅ No destructuring here
+  const tankId = Number(context.params.id);
 
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
   const userId = Number((session.user as any).id);
 
   const { rowCount } = await pool.query(
