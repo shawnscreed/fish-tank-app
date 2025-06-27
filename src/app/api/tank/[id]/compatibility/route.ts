@@ -7,27 +7,29 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  /* ── tank + auth ── */
   const { id } = await params;
   const tankId = Number(id);
 
+  // ✅ Authenticate user
   const session = await getServerSession(authOptions);
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session?.user)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const userId = Number((session.user as any).id);
   const { rowCount } = await pool.query(
     `SELECT 1 FROM "Tank" WHERE id = $1 AND user_id = $2`,
     [tankId, userId]
   );
-  if (!rowCount) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!rowCount)
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  /* ── species in this tank (fish + plants + inverts) ── */
+  // ✅ Get all species assigned to this tank with global IDs
   const { rows: species } = await pool.query(
     `
       SELECT * FROM (
-        SELECT f.id,
+        SELECT CONCAT('fish-', f.id) AS id,
                f.name,
-               'fish'  AS type,
+               'fish'               AS type,
                f.ph_low,
                f.ph_high,
                f.temp_low,
@@ -38,9 +40,9 @@ export async function GET(
 
         UNION
 
-        SELECT p.id,
+        SELECT CONCAT('plant-', p.id),
                p.name,
-               'plant' AS type,
+               'plant',
                p.ph_low,
                p.ph_high,
                p.temp_low,
@@ -51,9 +53,9 @@ export async function GET(
 
         UNION
 
-        SELECT i.id,
+        SELECT CONCAT('invert-', i.id),
                i.name,
-               'invert' AS type,
+               'invert',
                i.ph_low,
                i.ph_high,
                i.temp_low,
@@ -69,8 +71,9 @@ export async function GET(
 
   if (species.length === 0) return NextResponse.json({ species, matrix: [] });
 
-  /* ── pair-wise compatibility rules ── */
-  const ids = species.map((s: any) => s.id);
+  const ids = species.map((s: any) => parseInt(s.id.split("-")[1])); // ⚠️ drop type prefix for DB lookup
+
+  // ✅ Get rules where either species is involved
   const { rows: matrix } = await pool.query(
     `
       SELECT species1_id,
