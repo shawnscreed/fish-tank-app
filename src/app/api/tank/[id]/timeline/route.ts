@@ -61,32 +61,32 @@ export async function GET(
     );
 
     /* 3️⃣ Plants added */
-    const plants = await pool.query(
-      `
-        SELECT tp.id,
-               'plant_added' AS type,
-               tp.created_at AS date,
-               COALESCE(p.name, 'Plant') || ' added' AS summary
-        FROM "TankPlant" tp
-        LEFT JOIN "Plant" p ON p.id = tp.plant_id
-        WHERE tp.tank_id = $1
-      `,
-      [tankId]
-    );
+   const plants = await pool.query(
+  `
+    SELECT tp.id,
+           'plant_added'   AS type,
+           tp.created_at   AS date,      -- ← use the new column
+           COALESCE(p.name, 'Plant') || ' added' AS summary
+    FROM "TankPlant" tp
+    LEFT JOIN "Plant" p ON p.id = tp.plant_id
+    WHERE tp.tank_id = $1
+  `,
+  [tankId]
+);
 
     /* 4️⃣ Inverts added */
-    const inverts = await pool.query(
-      `
-        SELECT ti.id,
-               'invert_added' AS type,
-               ti.created_at AS date,
-               COALESCE(i.name, 'Invert') || ' added' AS summary
-        FROM "TankInvert" ti
-        LEFT JOIN "Invert" i ON i.id = ti.invert_id
-        WHERE ti.tank_id = $1
-      `,
-      [tankId]
-    );
+   const inverts = await pool.query(
+  `
+    SELECT ti.id,
+           'invert_added'  AS type,
+           ti.created_at   AS date,      -- ← use the new column
+           COALESCE(i.name, 'Invert') || ' added' AS summary
+    FROM "TankInvert" ti
+    LEFT JOIN "Invert" i ON i.id = ti.invert_id
+    WHERE ti.tank_id = $1
+  `,
+  [tankId]
+);
 
     /* 5️⃣ Water changes */
     const waterChanges = await pool.query(
