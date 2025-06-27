@@ -4,10 +4,6 @@ import pool from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/serverAuthOptions";
 
-/**
- * GET /api/tank/[id]/timeline
- * Returns merged events from WaterTest, TankFish, WaterChange, TankChemical
- */
 export async function GET(
   _req: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -21,28 +17,29 @@ export async function GET(
   }
 
   try {
-    /* ───────────────────────── 1)  Water tests ───────────────────────── */
+    /* ───── 1) Water-tests  ───── */
     const waterTests = await pool.query(
       `
       SELECT
         id,
         'water_test' AS type,
-        /* WaterTest definitely has test_date */
         test_date    AS date,
-        FORMAT('pH: %s | NH₃: %s | NO₂: %s | NO₃: %s', ph, ammonia, nitrite, nitrate) AS summary
+        FORMAT(
+          'pH: %s | NH₃: %s | NO₂: %s | NO₃: %s',
+          ph, ammonia, nitrite, nitrate
+        ) AS summary
       FROM "WaterTest"
       WHERE tank_id = $1
       `,
       [tankId]
     );
 
-    /* ───────────────────────── 2)  Fish added ───────────────────────── */
+    /* ───── 2) Fish added  ───── */
     const fish = await pool.query(
       `
       SELECT
         tf.id,
         'fish_added' AS type,
-        /* TankFish has created_at per earlier inspection */
         tf.created_at AS date,
         COALESCE(f.name, 'Unknown Fish') || ' added' AS summary
       FROM "TankFish" tf
@@ -52,50 +49,53 @@ export async function GET(
       [tankId]
     );
 
-    /* ───────────────────────── 3)  Water changes ─────────────────────── */
+    /* ───── 3) Water changes  ───── */
     const waterChanges = await pool.query(
       `
       SELECT
         id,
         'water_change' AS type,
-        /* prefer changed_at, else fall back to NOW() so query never fails */
-        COALESCE(changed_at, NOW()) AS date,
-        CASE
-          WHEN percentage IS NOT NULL
-            THEN percentage::text || '% water change'
-          WHEN volume IS NOT NULL
-            THEN volume::text     || ' gallons water change'
-          ELSE 'Water change'
-        END AS summary
+        change_date    AS date,
+        COALESCE(percent_changed::text, '?') ||
+          '% water change' ||
+          CASE
+            WHEN notes IS NOT NULL AND notes <> '' THEN ' – ' || notes
+            ELSE ''
+          END AS summary
       FROM "WaterChange"
       WHERE tank_id = $1
       `,
       [tankId]
     );
 
-    /* ───────────────────────── 4)  Chemical dosing / maintenance ─────── */
-    const chemical = await pool.query(
+    /* ───── 4) Chemical dosing / maintenance  ───── */
+    const maintenance = await pool.query(
       `
       SELECT
-        id,
-        'maintenance' AS type,
-        /* prefer added_at, else NOW() */
-        COALESCE(added_at, NOW()) AS date,
-        /* build a readable summary */
-        COALESCE(chemical_name, 'Chemical') || ' dose: ' ||
-          COALESCE(dosage::text, '?') || COALESCE(unit, '') AS summary
-      FROM "TankChemical"
-      WHERE tank_id = $1
+        tc.id,
+        'maintenance'      AS type,
+        tc.added_at        AS date,
+        COALESCE(c.name, 'Chemical') ||
+          ' dose: ' ||
+          COALESCE(tc.amount, '?') ||
+          CASE
+            WHEN tc.notes IS NOT NULL AND tc.notes <> '' THEN ' – ' || tc.notes
+            ELSE ''
+          END AS summary
+      FROM "TankChemical" tc
+      JOIN "Work" w          ON w.id       = tc.work_id
+      LEFT JOIN "Chemical" c ON c.id       = tc.chemical_id
+      WHERE w.tank_id = $1
       `,
       [tankId]
     );
 
-    /* ───────────────────────── Merge & sort ──────────────────────────── */
+    /* ───── merge & sort newest→oldest ───── */
     const events = [
       ...waterTests.rows,
       ...fish.rows,
       ...waterChanges.rows,
-      ...chemical.rows
+      ...maintenance.rows
     ].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
