@@ -1,30 +1,53 @@
 // 📄 File: src/components/MobileSidebar.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
-// src/components/MobileSidebar.tsx
-import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
-
-
 import { usePathname } from "next/navigation";
+import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
+import type { JWTUser } from "@/lib/auth"; // adjust this type import if needed
 
 interface MenuItem {
   name: string;
   href: string;
 }
 
-const menuItems: MenuItem[] = [
-  { name: "Dashboard", href: "/dashboard" },
-  { name: "Tank", href: "/tank" },
-  { name: "Work", href: "/work" },
-  { name: "Chemicals", href: "/chemicals" },
-  { name: "Feedback", href: "/dashboard/feedback" },
-];
-
-export default function MobileSidebar() {
+export default function MobileSidebar({ user }: { user: JWTUser }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+
+  const menuItems: MenuItem[] = [
+    { name: "Dashboard", href: "/dashboard" },
+    { name: "Products", href: "/dashboard/products" },
+    { name: "Compatibility", href: "/dashboard/compatibility" },
+    { name: "Feedback", href: "/dashboard/feedback" },
+  ];
+
+  const adminPages: MenuItem[] =
+    user.role === "admin" || user.role === "super_admin"
+      ? [
+          { name: "Fish", href: "/fish" },
+          { name: "Plant", href: "/plant" },
+          { name: "Inverts", href: "/inverts" },
+          { name: "Coral", href: "/coral" },
+          { name: "Tank", href: "/tank" },
+          { name: "Chemicals", href: "/chemicals" },
+        ]
+      : [];
+
+  const adminTools: MenuItem[] =
+    user.role === "admin" || user.role === "super_admin"
+      ? [
+          { name: "Access Control", href: "/admin/access-control" },
+          { name: "User Accounts", href: "/admin/user-account-manager" },
+          { name: "Role Editor", href: "/admin/role-editor" },
+          { name: "Referral Codes", href: "/admin/referral-code-manager" },
+          { name: "Feedback Entries", href: "/admin/feedback-entry-viewer" },
+          { name: "Compatibility", href: "/admin/compatibility" },
+        ]
+      : [];
+
+  const fullMenu = [...menuItems, ...adminPages, ...adminTools];
 
   return (
     <>
@@ -36,12 +59,15 @@ export default function MobileSidebar() {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-40 bg-black bg-opacity-50" onClick={() => setOpen(false)} />
+        <div
+          className="fixed inset-0 z-40 bg-black bg-opacity-50"
+          onClick={() => setOpen(false)}
+        />
       )}
 
       <div
         className={`fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-50 transform transition-transform duration-300 ease-in-out
-          ${open ? "translate-x-0" : "-translate-x-full"}`}
+        ${open ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="flex items-center justify-between px-4 py-3 border-b">
           <h2 className="text-lg font-semibold">Menu</h2>
@@ -51,11 +77,13 @@ export default function MobileSidebar() {
         </div>
 
         <nav className="p-4 space-y-2">
-          {menuItems.map((item) => (
+          {fullMenu.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className={`block px-3 py-2 rounded hover:bg-gray-100 ${pathname === item.href ? "bg-gray-200 font-semibold" : ""}`}
+              className={`block px-3 py-2 rounded hover:bg-gray-100 ${
+                pathname === item.href ? "bg-gray-200 font-semibold" : ""
+              }`}
               onClick={() => setOpen(false)}
             >
               {item.name}
