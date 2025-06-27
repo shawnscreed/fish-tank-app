@@ -9,7 +9,7 @@ import type { Role } from "@/lib/auth";
 
 /* ───────────────── types ───────────────── */
 interface Species {
-  id: number;
+  id: string; // ✅ was `number`, now string (e.g. "fish-3")
   name: string;
   type: "fish" | "plant" | "invert";
   ph_low: number | null;
@@ -18,15 +18,15 @@ interface Species {
   temp_high: number | null;
 }
 interface MatrixEntry {
-  species1_id: number;
-  species2_id: number;
+  species1_id: string;
+  species2_id: string;
   compatible: boolean | null;
   reason?: string | null;
 }
 interface ApiResponse {
   species: Species[];
   matrix: MatrixEntry[];
-  tankParams?: { ph: number | null; temp: number | null }; // optional
+  tankParams?: { ph: number | null; temp: number | null };
 }
 
 /* ───────────────── component ───────────────── */
@@ -38,12 +38,10 @@ export default function CompatibilityPage() {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  /* ─── auth redirect ─── */
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
   }, [status, router]);
 
-  /* ─── fetch once authenticated ─── */
   useEffect(() => {
     if (!id || status !== "authenticated") return;
 
@@ -59,7 +57,6 @@ export default function CompatibilityPage() {
       .catch(() => setError("Failed to load compatibility data."));
   }, [id, status, router]);
 
-  /* ─── early returns ─── */
   if (status === "loading") return <div className="p-6">Checking session…</div>;
   if (!session?.user) return <div className="p-6">Redirecting…</div>;
 
@@ -70,19 +67,22 @@ export default function CompatibilityPage() {
     role: (session.user as any).role as Role,
   };
 
-  /* ───────────────── helpers ───────────────── */
   const matrixMap = useMemo(() => {
     const m = new Map<string, MatrixEntry>();
     data?.matrix.forEach((e) => m.set(`${e.species1_id}-${e.species2_id}`, e));
     return m;
   }, [data]);
 
-  const overlap = (aLow: number | null, aHigh: number | null, bLow: number | null, bHigh: number | null) => {
-    if (aLow == null || aHigh == null || bLow == null || bHigh == null) return true; // unknown => neutral
+  const overlap = (
+    aLow: number | null,
+    aHigh: number | null,
+    bLow: number | null,
+    bHigh: number | null
+  ) => {
+    if (aLow == null || aHigh == null || bLow == null || bHigh == null) return true;
     return aLow <= bHigh && bLow <= aHigh;
   };
 
-  /* pH / temp header coloration */
   const headerBg = (sp: Species) => {
     const { species } = data ?? { species: [] };
     const anyConflict = species.some((other) =>
@@ -97,7 +97,8 @@ export default function CompatibilityPage() {
 
     const id1 = data.species[i].id;
     const id2 = data.species[j].id;
-    const entry = matrixMap.get(`${id1}-${id2}`) ?? matrixMap.get(`${id2}-${id1}`);
+    const entry =
+      matrixMap.get(`${id1}-${id2}`) ?? matrixMap.get(`${id2}-${id1}`);
 
     let bg = "bg-gray-300";
     let symbol = "?";
@@ -116,7 +117,6 @@ export default function CompatibilityPage() {
     );
   };
 
-  /* ───────────────── render ───────────────── */
   return (
     <ClientLayoutWrapper user={user}>
       <div className="p-6 max-w-5xl mx-auto">
