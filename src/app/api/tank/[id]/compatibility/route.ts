@@ -33,33 +33,52 @@ export async function GET(
     // ── Load species ──
     console.log("🔄 Loading species in tank...");
 
-    const speciesQuery = await pool.query(
-      `
-      SELECT * FROM (
-        SELECT CONCAT('fish-', f.id) AS id, f.name, 'fish' AS type,
-               f.ph_low, f.ph_high, f.temp_low, f.temp_high
-        FROM "TankFish" tf
-        JOIN "Fish" f ON f.id = tf.fish_id
-        WHERE tf.tank_id = $1
+const speciesQuery = await pool.query(
+  `
+  SELECT * FROM (
+    -- fish rows ────────────────────────────────
+    SELECT CONCAT('fish-', f.id) AS id,
+           f.name                AS name,
+           'fish'                AS type,
+           f.ph_low              AS ph_low,
+           f.ph_high             AS ph_high,
+           f.temp_low            AS temp_low,
+           f.temp_high           AS temp_high
+    FROM "TankFish" tf
+    JOIN "Fish"      f ON f.id = tf.fish_id
+    WHERE tf.tank_id = $1
 
-        UNION ALL
-        SELECT CONCAT('plant-', p.id), p.name, 'plant',
-               p.ph_low, p.ph_high, p.temp_low, p.temp_high
-        FROM "TankPlant" tp
-        JOIN "Plant" p ON p.id = tp.plant_id
-        WHERE tp.tank_id = $1
+    UNION ALL
+    -- plant rows (no temp columns) ─────────────
+    SELECT CONCAT('plant-', p.id) AS id,
+           p.name                 AS name,
+           'plant'                AS type,
+           p.ph_low               AS ph_low,
+           p.ph_high              AS ph_high,
+           NULL                   AS temp_low,
+           NULL                   AS temp_high
+    FROM "TankPlant" tp
+    JOIN "Plant"      p ON p.id = tp.plant_id
+    WHERE tp.tank_id  = $1
 
-        UNION ALL
-        SELECT CONCAT('invert-', i.id), i.name, 'invert',
-               i.ph_low, i.ph_high, i.temp_low, i.temp_high
-        FROM "TankInvert" ti
-        JOIN "Invert" i ON i.id = ti.invert_id
-        WHERE ti.tank_id = $1
-      ) s
-      ORDER BY name;
-      `,
-      [tankId]
-    );
+    UNION ALL
+    -- invert rows (no temp columns) ────────────
+    SELECT CONCAT('invert-', i.id) AS id,
+           i.name                  AS name,
+           'invert'                AS type,
+           i.ph_low                AS ph_low,
+           i.ph_high               AS ph_high,
+           NULL                    AS temp_low,
+           NULL                    AS temp_high
+    FROM "TankInvert" ti
+    JOIN "Invert"      i ON i.id = ti.invert_id
+    WHERE ti.tank_id   = $1
+  ) s
+  ORDER BY name;
+  `,
+  [tankId]
+);
+
 
     const species = speciesQuery.rows;
     console.log("✅ Species loaded:", species);

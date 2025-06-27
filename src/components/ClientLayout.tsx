@@ -37,7 +37,6 @@ export default function ClientLayout({ children, user }: ClientLayoutProps) {
           { name: "Inverts", href: "/inverts" },
            { name: "Coral", href: "/coral" },
     { name: "Tank", href: "/tank" },
-    { name: "Work", href: "/work" },
     { name: "Chemicals", href: "/chemicals" },
         ]
       : [];
