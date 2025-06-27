@@ -7,7 +7,7 @@ async function isAdmin(req: NextRequest) {
   return ["admin", "super_admin"].includes(token?.role as string);
 }
 
-/* PUT → update rule (no duplicates, no self-compare) */
+/* ───────── PUT – update a rule ───────── */
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -17,24 +17,29 @@ export async function PUT(
 
   const { id } = await params;
   const ruleId = Number(id);
-  const { species1_id, species2_id, compatible, reason } = await req.json();
 
-  if (species1_id === species2_id) {
+  let { species1_id, species2_id, compatible, reason } = await req.json();
+
+  /* normalise IDs to lowercase */
+  species1_id = species1_id.toLowerCase();
+  species2_id = species2_id.toLowerCase();
+
+  /* self-compare guard */
+  if (species1_id === species2_id)
     return NextResponse.json(
       { error: "Cannot compare species to itself." },
       { status: 400 }
     );
-  }
 
-  /* duplicate check excluding current row */
+  /* duplicate check, excluding this rule */
   const { rowCount: dup } = await pool.query(
-    `SELECT 1
-       FROM "SpeciesCompatibility"
-      WHERE id <> $3
-        AND (
-          (species1_id = $1 AND species2_id = $2) OR
-          (species1_id = $2 AND species2_id = $1)
-        )`,
+    `
+    SELECT 1
+    FROM   "SpeciesCompatibility"
+    WHERE  id <> $3
+      AND ((species1_id = $1 AND species2_id = $2)
+        OR (species1_id = $2 AND species2_id = $1))
+    `,
     [species1_id, species2_id, ruleId]
   );
   if (dup)
@@ -43,23 +48,27 @@ export async function PUT(
       { status: 409 }
     );
 
+  /* update */
   const { rows } = await pool.query(
-    `UPDATE "SpeciesCompatibility"
-         SET species1_id = $1,
-             species2_id = $2,
-             compatible   = $3,
-             reason       = $4
-       WHERE id = $5
-   RETURNING id, species1_id, species2_id, compatible, reason`,
+    `
+    UPDATE "SpeciesCompatibility"
+       SET species1_id = $1,
+           species2_id = $2,
+           compatible  = $3,
+           reason      = $4
+     WHERE id = $5
+   RETURNING id, species1_id, species2_id, compatible, reason
+    `,
     [species1_id, species2_id, compatible, reason, ruleId]
   );
+
   if (!rows.length)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return NextResponse.json(rows[0]);
 }
 
-/* DELETE → remove rule */
+/* ───────── DELETE – remove a rule ───────── */
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
