@@ -6,14 +6,15 @@ import { authOptions } from "@/lib/serverAuthOptions";
 
 /**
  * GET /api/tank/[id]/timeline
- * Combines water-tests (from "WaterTest") and fish-added events.
+ * Combines water-tests, fish-added, water-change, and maintenance events.
+ * Each row returned as: { id, type, date, summary }
  */
 export async function GET(
   _req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params;
-  const tankId = Number(id);
+  const { id }  = await context.params;
+  const tankId  = Number(id);
 
   const session = await getServerSession(authOptions);
   if (!session?.user) {
@@ -21,10 +22,8 @@ export async function GET(
   }
 
   try {
-    // ───────────────────────────
-    // 1) Water tests (from "WaterTest")
-    // ───────────────────────────
-    const water = await pool.query(
+    // ───────────────────────── 1) Water tests
+    const waterTests = await pool.query(
       `
       SELECT
         id,
@@ -40,9 +39,7 @@ export async function GET(
       [tankId]
     );
 
-    // ───────────────────────────
-    // 2) Fish added (assume qty 1)
-    // ───────────────────────────
+    // ───────────────────────── 2) Fish added
     const fish = await pool.query(
       `
       SELECT
@@ -57,10 +54,41 @@ export async function GET(
       [tankId]
     );
 
-    // Merge & sort newest → oldest
-    const events = [...water.rows, ...fish.rows].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    // ───────────────────────── 3) Water changes
+    const changes = await pool.query(
+      `
+      SELECT
+        id,
+        'water_change' AS type,
+        created_at     AS date,
+        COALESCE(percentage, volume)::text || ' % water change' AS summary
+      FROM "WaterChange"
+      WHERE tank_id = $1
+      `,
+      [tankId]
     );
+
+    // ───────────────────────── 4) Maintenance / Work logs
+    const work = await pool.query(
+      `
+      SELECT
+        id,
+        'maintenance' AS type,
+        created_at    AS date,
+        COALESCE(description, 'Maintenance performed') AS summary
+      FROM "Work"
+      WHERE tank_id = $1
+      `,
+      [tankId]
+    );
+
+    // Merge & sort newest → oldest
+    const events = [
+      ...waterTests.rows,
+      ...fish.rows,
+      ...changes.rows,
+      ...work.rows
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     return NextResponse.json(events);
   } catch (err: any) {
