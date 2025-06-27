@@ -3,16 +3,21 @@ import { NextResponse } from "next/server";
 import pool from "@/lib/db";
 
 export async function GET() {
-  const { rows } = await pool.query(`
-    SELECT id,
-           name,
-           type,          -- 'fish' | 'plant' | 'invert'
-           ph_low,
-           ph_high,
-           temp_low,
-           temp_high
-    FROM   "Species"
-    ORDER  BY name
-  `);
-  return NextResponse.json(rows);
+  try {
+    const { rows } = await pool.query(`
+      SELECT id, name, 'fish'  AS type, ph_low, ph_high, temp_low, temp_high
+      FROM "Fish"
+      UNION
+      SELECT id, name, 'plant' AS type, ph_low, ph_high, temp_low, temp_high
+      FROM "Plant"
+      UNION
+      SELECT id, name, 'invert' AS type, ph_low, ph_high, temp_low, temp_high
+      FROM "Invert"
+      ORDER BY name
+    `);
+    return NextResponse.json(rows);
+  } catch (err: any) {
+    console.error("GET /api/species error:", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
 }
