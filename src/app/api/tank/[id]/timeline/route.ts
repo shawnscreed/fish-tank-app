@@ -22,7 +22,7 @@ export async function GET(
 
   try {
     // ───────────────────────────
-    // 1) Water tests  (from "WaterTest")
+    // 1) Water tests (from "WaterTest")
     // ───────────────────────────
     const water = await pool.query(
       `
@@ -41,7 +41,7 @@ export async function GET(
     );
 
     // ───────────────────────────
-    // 2) Fish added
+    // 2) Fish added (assume qty 1)
     // ───────────────────────────
     const fish = await pool.query(
       `
@@ -49,8 +49,7 @@ export async function GET(
         tf.id,
         'fish_added' AS type,
         tf.created_at AS date,
-        COALESCE(f.name, 'Unknown Fish') ||
-          ' (qty ' || COALESCE(tf.quantity, 1) || ') added' AS summary
+        COALESCE(f.name, 'Unknown Fish') || ' added' AS summary
       FROM "TankFish" tf
       LEFT JOIN "Fish" f ON f.id = tf.fish_id
       WHERE tf.tank_id = $1
