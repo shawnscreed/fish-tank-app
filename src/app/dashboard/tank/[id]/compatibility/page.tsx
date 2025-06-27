@@ -1,3 +1,5 @@
+
+// file: src/app/dashboard/tank/[id]/compatibility/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -67,11 +69,20 @@ export default function CompatibilityPage() {
     role: (session.user as any).role as Role,
   };
 
-  const matrixMap = useMemo(() => {
-    const m = new Map<string, MatrixEntry>();
-    data?.matrix.forEach((e) => m.set(`${e.species1_id}-${e.species2_id}`, e));
-    return m;
-  }, [data]);
+ const matrixMap = useMemo(() => {
+  const m = new Map<string, MatrixEntry>();
+
+  if (Array.isArray(data?.matrix)) {
+    data.matrix.forEach((e) => {
+      if (e?.species1_id && e?.species2_id) {
+        m.set(`${e.species1_id}-${e.species2_id}`, e);
+      }
+    });
+  }
+
+  return m;
+}, [data]);
+
 
   const overlap = (
     aLow: number | null,
