@@ -10,93 +10,72 @@ export async function GET(
   try {
     const { id } = await params;
     const tankId = Number(id);
-    console.log("🐟 Checking compatibility for tank ID:", tankId);
 
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      console.log("⛔ No session");
+    if (!session?.user)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
     const userId = Number((session.user as any).id);
-    console.log("👤 Authenticated user:", userId);
-
-    const tankResult = await pool.query(
+    const owner = await pool.query(
       `SELECT 1 FROM "Tank" WHERE id = $1 AND user_id = $2`,
       [tankId, userId]
     );
-    if (!tankResult.rowCount) {
-      console.log("❌ Tank doesn't belong to user or doesn't exist");
+    if (!owner.rowCount)
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
 
-    // ── Load species ──
-    console.log("🔄 Loading species in tank...");
+    /* ---------- species (NULL temps for plants/inverts) ---------- */
+    const { rows: species } = await pool.query(
+      `
+      SELECT * FROM (
+        -- fish
+        SELECT CONCAT('fish-', f.id)  AS id,
+               f.name                AS name,
+               'fish'                AS type,
+               f.ph_low              AS ph_low,
+               f.ph_high             AS ph_high,
+               f.temp_low            AS temp_low,
+               f.temp_high           AS temp_high
+        FROM "TankFish" tf
+        JOIN "Fish" f ON f.id = tf.fish_id
+        WHERE tf.tank_id = $1
 
-const speciesQuery = await pool.query(
-  `
-  SELECT * FROM (
-    -- fish rows ────────────────────────────────
-    SELECT CONCAT('fish-', f.id) AS id,
-           f.name                AS name,
-           'fish'                AS type,
-           f.ph_low              AS ph_low,
-           f.ph_high             AS ph_high,
-           f.temp_low            AS temp_low,
-           f.temp_high           AS temp_high
-    FROM "TankFish" tf
-    JOIN "Fish"      f ON f.id = tf.fish_id
-    WHERE tf.tank_id = $1
+        UNION ALL
+        -- plant
+        SELECT CONCAT('plant-', p.id) AS id,
+               p.name                 AS name,
+               'plant'                AS type,
+               p.ph_low               AS ph_low,
+               p.ph_high              AS ph_high,
+               NULL                   AS temp_low,
+               NULL                   AS temp_high
+        FROM "TankPlant" tp
+        JOIN "Plant" p ON p.id = tp.plant_id
+        WHERE tp.tank_id = $1
 
-    UNION ALL
-    -- plant rows (no temp columns) ─────────────
-    SELECT CONCAT('plant-', p.id) AS id,
-           p.name                 AS name,
-           'plant'                AS type,
-           p.ph_low               AS ph_low,
-           p.ph_high              AS ph_high,
-           NULL                   AS temp_low,
-           NULL                   AS temp_high
-    FROM "TankPlant" tp
-    JOIN "Plant"      p ON p.id = tp.plant_id
-    WHERE tp.tank_id  = $1
+        UNION ALL
+        -- invert
+        SELECT CONCAT('invert-', i.id) AS id,
+               i.name                  AS name,
+               'invert'                AS type,
+               i.ph_low                AS ph_low,
+               i.ph_high               AS ph_high,
+               NULL                    AS temp_low,
+               NULL                    AS temp_high
+        FROM "TankInvert" ti
+        JOIN "Invert" i ON i.id = ti.invert_id
+        WHERE ti.tank_id = $1
+      ) s
+      ORDER BY name;
+      `,
+      [tankId]
+    );
 
-    UNION ALL
-    -- invert rows (no temp columns) ────────────
-    SELECT CONCAT('invert-', i.id) AS id,
-           i.name                  AS name,
-           'invert'                AS type,
-           i.ph_low                AS ph_low,
-           i.ph_high               AS ph_high,
-           NULL                    AS temp_low,
-           NULL                    AS temp_high
-    FROM "TankInvert" ti
-    JOIN "Invert"      i ON i.id = ti.invert_id
-    WHERE ti.tank_id   = $1
-  ) s
-  ORDER BY name;
-  `,
-  [tankId]
-);
-
-
-    const species = speciesQuery.rows;
-    console.log("✅ Species loaded:", species);
-
-    if (!species || !Array.isArray(species)) {
-      console.log("❌ Species result invalid");
-      return NextResponse.json({ error: "Species query failed" }, { status: 500 });
-    }
-
-    if (!species.length) {
-      console.log("ℹ️ No species in tank");
+    if (!species.length)
       return NextResponse.json({ species: [], matrix: [] });
-    }
 
+    /* ---------- compatibility rows ---------- */
     const ids = species.map((s) => s.id);
-    console.log("🔍 Species IDs:", ids);
-
-    const matrixQuery = await pool.query(
+    const { rows: matrix } = await pool.query(
       `
       SELECT species1_id, species2_id, compatible, reason
       FROM "SpeciesCompatibility"
@@ -106,13 +85,9 @@ const speciesQuery = await pool.query(
       [ids]
     );
 
-    const matrix = matrixQuery.rows;
-    console.log("✅ Compatibility matrix:", matrix);
-
     return NextResponse.json({ species, matrix });
-
   } catch (err: any) {
-    console.error("💥 Compatibility route crashed:", err);
+    console.error("💥 Tank compatibility error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
