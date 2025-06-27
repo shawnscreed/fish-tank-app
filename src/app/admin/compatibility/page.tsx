@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
 
-/* ──────────────── types ──────────────── */
+/* ─────────────── types ─────────────── */
 interface Rule {
   id: number;
   species1_id: number;
@@ -13,46 +13,27 @@ interface Rule {
   compatible: boolean;
   reason: string | null;
 }
-
 interface SpeciesOption {
   id: number;
   name: string;
   type: "fish" | "plant" | "invert";
 }
 
-/* ──────────────── component ──────────────── */
 export default function AdminCompatibilityPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
 
-  /* ─── auth guard ─── */
-  if (status === "loading") return <div className="p-6">Checking session…</div>;
-  if (!session?.user || !["admin", "super_admin"].includes((session.user as any).role)) {
-    router.push("/login");
-    return null;
-  }
-
-  const user = {
-    id: Number((session.user as any).id),
-    email: session.user.email ?? "",
-    name: session.user.name ?? "",
-    role: (session.user as any).role,
-  };
-
-  /* ─── state ─── */
   const [rules, setRules] = useState<Rule[]>([]);
   const [species, setSpecies] = useState<SpeciesOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+  const [showMatrix, setShowMatrix] = useState(false);
   const [newRule, setNewRule] = useState({
     species1_id: "",
     species2_id: "",
     compatible: true,
     reason: "",
   });
-
-  const [showMatrix, setShowMatrix] = useState(false);
   const [editor, setEditor] = useState<{
     open: boolean;
     species1_id: number;
@@ -62,8 +43,19 @@ export default function AdminCompatibilityPage() {
     ruleId?: number;
   }>({ open: false } as any);
 
-  /* ─── fetch initial data ─── */
   useEffect(() => {
+    if (status === "unauthenticated") router.push("/login");
+    if (
+      status === "authenticated" &&
+      !["admin", "super_admin"].includes((session?.user as any)?.role)
+    ) {
+      router.push("/login");
+    }
+  }, [status, session, router]);
+
+  useEffect(() => {
+    if (status !== "authenticated") return;
+
     Promise.all([
       fetch("/api/admin/compatibility").then((r) => r.json()),
       fetch("/api/species").then((r) => r.json()),
@@ -75,9 +67,34 @@ export default function AdminCompatibilityPage() {
       })
       .catch(() => setError("Failed to load data"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [status]);
 
-  /* ─── helpers ─── */
+  const handleAdd = async () => {
+    const { species1_id, species2_id } = newRule;
+    if (!species1_id || !species2_id) return alert("Choose both species");
+    const res = await fetch("/api/admin/compatibility", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        species1_id: Number(species1_id),
+        species2_id: Number(species2_id),
+        compatible: newRule.compatible,
+        reason: newRule.reason || null,
+      }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setRules((prev) => [...prev, data]);
+      setNewRule({ species1_id: "", species2_id: "", compatible: true, reason: "" });
+    } else alert(data.error);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("Delete this rule?")) return;
+    const res = await fetch(`/api/admin/compatibility/${id}`, { method: "DELETE" });
+    if (res.ok) setRules((prev) => prev.filter((r) => r.id !== id));
+  };
+
   const nameFor = (id: number) => species.find((s) => s.id === id)?.name ?? id;
 
   const openEditor = (opts: { rule: Rule | null; species1_id: number; species2_id: number }) => {
@@ -94,7 +111,9 @@ export default function AdminCompatibilityPage() {
 
   const saveEditor = async () => {
     const method = editor.ruleId ? "PUT" : "POST";
-    const url = editor.ruleId ? `/api/admin/compatibility/${editor.ruleId}` : "/api/admin/compatibility";
+    const url = editor.ruleId
+      ? `/api/admin/compatibility/${editor.ruleId}`
+      : "/api/admin/compatibility";
     const res = await fetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
@@ -115,19 +134,20 @@ export default function AdminCompatibilityPage() {
     setEditor({ open: false } as any);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Delete this rule?")) return;
-    const res = await fetch(`/api/admin/compatibility/${id}`, { method: "DELETE" });
-    if (res.ok) setRules((prev) => prev.filter((r) => r.id !== id));
+  if (status !== "authenticated") return <div className="p-6">Checking session…</div>;
+
+  const user = {
+    id: Number((session!.user as any).id),
+    email: session!.user.email ?? "",
+    name: session!.user.name ?? "",
+    role: (session!.user as any).role,
   };
 
-  /* ─── UI ─── */
   return (
     <ClientLayoutWrapper user={user}>
       <div className="p-6 max-w-6xl mx-auto">
         <h1 className="text-2xl font-bold mb-4">Species Compatibility Rules</h1>
 
-        {/* view toggle */}
         <button
           className="mb-4 bg-gray-200 px-3 py-1 rounded"
           onClick={() => setShowMatrix(!showMatrix)}
@@ -164,16 +184,20 @@ export default function AdminCompatibilityPage() {
                             (r.species1_id === col.id && r.species2_id === row.id)
                         ) ?? null;
 
-                      const bg = rule ? (rule.compatible ? "bg-green-200" : "bg-red-200") : "bg-gray-200";
+                      const bg = rule
+                        ? rule.compatible
+                          ? "bg-green-200"
+                          : "bg-red-200"
+                        : "bg-gray-200";
 
                       return (
                         <td
                           key={col.id}
                           className={`${bg} border w-8 h-8 cursor-pointer group`}
-                          title={
-                            rule ? rule.reason || "No reason" : "No rule (click to add)"
+                          title={rule ? rule.reason || "No reason" : "No rule (click to add)"}
+                          onClick={() =>
+                            openEditor({ rule, species1_id: row.id, species2_id: col.id })
                           }
-                          onClick={() => openEditor({ rule, species1_id: row.id, species2_id: col.id })}
                         >
                           <span className="invisible group-hover:visible">
                             {rule ? (rule.compatible ? "✓" : "✕") : "＋"}
@@ -191,11 +215,9 @@ export default function AdminCompatibilityPage() {
         {/* TABLE VIEW + ADD FORM */}
         {!showMatrix && (
           <>
-            {/* add rule */}
             <div className="mb-6 border p-4 rounded shadow-sm">
               <h2 className="text-lg font-semibold mb-2">Add New Rule</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* species1 */}
                 <select
                   className="border p-2"
                   value={newRule.species1_id}
@@ -203,10 +225,11 @@ export default function AdminCompatibilityPage() {
                 >
                   <option value="">Select Species 1</option>
                   {species.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
                   ))}
                 </select>
-                {/* species2 */}
                 <select
                   className="border p-2"
                   value={newRule.species2_id}
@@ -214,19 +237,21 @@ export default function AdminCompatibilityPage() {
                 >
                   <option value="">Select Species 2</option>
                   {species.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
                   ))}
                 </select>
-                {/* compatible */}
                 <select
                   className="border p-2"
                   value={newRule.compatible ? "true" : "false"}
-                  onChange={(e) => setNewRule({ ...newRule, compatible: e.target.value === "true" })}
+                  onChange={(e) =>
+                    setNewRule({ ...newRule, compatible: e.target.value === "true" })
+                  }
                 >
                   <option value="true">Compatible</option>
                   <option value="false">Incompatible</option>
                 </select>
-                {/* reason */}
                 <input
                   className="border p-2"
                   placeholder="Reason (optional)"
@@ -236,30 +261,12 @@ export default function AdminCompatibilityPage() {
               </div>
               <button
                 className="mt-4 bg-blue-600 text-white px-4 py-2 rounded"
-                onClick={async () => {
-                  if (!newRule.species1_id || !newRule.species2_id) return alert("Choose both species");
-                  const res = await fetch("/api/admin/compatibility", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      species1_id: Number(newRule.species1_id),
-                      species2_id: Number(newRule.species2_id),
-                      compatible: newRule.compatible,
-                      reason: newRule.reason || null,
-                    }),
-                  });
-                  const data = await res.json();
-                  if (res.ok) {
-                    setRules((prev) => [...prev, data]);
-                    setNewRule({ species1_id: "", species2_id: "", compatible: true, reason: "" });
-                  } else alert(data.error);
-                }}
+                onClick={handleAdd}
               >
                 Add Rule
               </button>
             </div>
 
-            {/* rules table */}
             {loading ? (
               <p>Loading…</p>
             ) : error ? (
@@ -302,7 +309,7 @@ export default function AdminCompatibilityPage() {
           </>
         )}
 
-        {/* ─── modal editor ─── */}
+        {/* MODAL EDITOR */}
         {editor.open && (
           <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
             <div className="bg-white p-6 rounded shadow max-w-sm w-full">
@@ -312,7 +319,9 @@ export default function AdminCompatibilityPage() {
               <select
                 className="border w-full mb-3 p-2"
                 value={editor.compatible ? "true" : "false"}
-                onChange={(e) => setEditor({ ...editor, compatible: e.target.value === "true" })}
+                onChange={(e) =>
+                  setEditor({ ...editor, compatible: e.target.value === "true" })
+                }
               >
                 <option value="true">Compatible</option>
                 <option value="false">Incompatible</option>
