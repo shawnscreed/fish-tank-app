@@ -1,15 +1,18 @@
-// 📄 File: src/app/api/species/route.ts
 import { NextResponse } from "next/server";
 import pool from "@/lib/db";
 
 export async function GET() {
   try {
+    // only fish, numeric id
     const { rows } = await pool.query(`
-      SELECT CONCAT('fish-', id) AS id, name, 'fish' AS type, ph_low, ph_high, temp_low, temp_high FROM "Fish"
-      UNION ALL
-      SELECT CONCAT('plant-', id), name, 'plant', ph_low, ph_high, temp_low, temp_high FROM "Plant"
-      UNION ALL
-      SELECT CONCAT('invert-', id), name, 'invert', ph_low, ph_high, temp_low, temp_high FROM "Invert"
+      SELECT id,
+             name,
+             'fish' AS type,
+             ph_low,
+             ph_high,
+             temp_low,
+             temp_high
+      FROM "Fish"
       ORDER BY name
     `);
 
