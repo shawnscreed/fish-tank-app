@@ -11,7 +11,6 @@ export async function GET(
     const { id } = await params;
     const tankId = Number(id);
 
-    /* ── auth / ownership ── */
     const session = await getServerSession(authOptions);
     if (!session?.user)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -24,31 +23,28 @@ export async function GET(
     if (!rowCount)
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    /* ── load all species in this tank, with prefixed IDs ── */
+    // ── Load species ──
     const { rows: species } = await pool.query(
       `
       SELECT * FROM (
-        SELECT CONCAT('fish-', f.id)  AS id,
-               f.name,
-               'fish'                AS type,
-               f.ph_low,  f.ph_high,
-               f.temp_low, f.temp_high
+        SELECT CONCAT('fish-', f.id) AS id, f.name, 'fish' AS type,
+               f.ph_low, f.ph_high, f.temp_low, f.temp_high
         FROM "TankFish" tf
-        JOIN "Fish"     f ON f.id = tf.fish_id
+        JOIN "Fish" f ON f.id = tf.fish_id
         WHERE tf.tank_id = $1
 
         UNION ALL
         SELECT CONCAT('plant-', p.id), p.name, 'plant',
-               p.ph_low,  p.ph_high, p.temp_low, p.temp_high
+               p.ph_low, p.ph_high, p.temp_low, p.temp_high
         FROM "TankPlant" tp
-        JOIN "Plant"     p ON p.id = tp.plant_id
+        JOIN "Plant" p ON p.id = tp.plant_id
         WHERE tp.tank_id = $1
 
         UNION ALL
         SELECT CONCAT('invert-', i.id), i.name, 'invert',
-               i.ph_low,  i.ph_high, i.temp_low, i.temp_high
+               i.ph_low, i.ph_high, i.temp_low, i.temp_high
         FROM "TankInvert" ti
-        JOIN "Invert"     i ON i.id = ti.invert_id
+        JOIN "Invert" i ON i.id = ti.invert_id
         WHERE ti.tank_id = $1
       ) s
       ORDER BY name;
@@ -56,12 +52,18 @@ export async function GET(
       [tankId]
     );
 
+    console.log("✅ Loaded species:", species);
+
+    if (!species || !Array.isArray(species)) {
+      console.error("❌ species is not an array:", species);
+      return NextResponse.json({ error: "Server error" }, { status: 500 });
+    }
+
     if (!species.length)
       return NextResponse.json({ species: [], matrix: [] });
 
-    /* ── find all compat rules that involve ANY of these IDs ── */
-    const ids = species.map((s) => s.id);          // array of 'fish-3', etc.
-
+    // ── Load compatibility matrix ──
+    const ids = species.map((s) => s.id);
     const { rows: matrix } = await pool.query(
       `
       SELECT species1_id, species2_id, compatible, reason
@@ -72,7 +74,15 @@ export async function GET(
       [ids]
     );
 
+    console.log("✅ Loaded matrix:", matrix);
+
+    if (!matrix || !Array.isArray(matrix)) {
+      console.error("❌ matrix is not an array:", matrix);
+      return NextResponse.json({ error: "Server error" }, { status: 500 });
+    }
+
     return NextResponse.json({ species, matrix });
+
   } catch (err: any) {
     console.error("💥 Tank compatibility error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
