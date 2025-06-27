@@ -1,58 +1,48 @@
-// 📄 File: src/app/dashboard/page.tsx
-
+// 📄 src/app/dashboard/page.tsx
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/serverAuthOptions"; // ✅ fixed
+import { authOptions } from "@/lib/serverAuthOptions";
 import { redirect } from "next/navigation";
 import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
 import AddTankForm from "@/components/AddTankForm";
 import Link from "next/link";
-import pool from "@/lib/db"; // ✅ added
+import pool from "@/lib/db";
 
 type Role = "super_admin" | "sub_admin" | "admin" | "user" | "beta_user";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
 
-  // ✅ SAFETY CHECK: validate session and ensure user ID is a number
-  if (
-    !session ||
-    !session.user?.id ||
-    isNaN(Number(session.user.id))
-  ) {
-    console.warn("❌ Invalid or missing session.user.id:", session?.user);
+  if (!session?.user?.id || Number.isNaN(Number(session.user.id))) {
     redirect("/login");
   }
 
   const user = {
     id: Number(session.user.id),
-    name: session.user.name || "",
-    email: session.user.email || "",
+    name: session.user.name ?? "",
+    email: session.user.email ?? "",
     role: (session.user as any).role as Role,
   };
 
-  const userName = user.name || user.email;
-
-  console.log(`🔍 Loading tanks for user ID: ${user.id}`);
-
-  const tankRes = await pool.query(
-    `SELECT id, name, gallons, water_type FROM "Tank" WHERE user_id = $1`,
+  const { rows: tanks } = await pool.query(
+    `SELECT id, name, gallons, water_type
+       FROM "Tank"
+      WHERE user_id = $1
+      ORDER BY id`,
     [user.id]
   );
-  const tanks = tankRes.rows;
 
   return (
     <ClientLayoutWrapper user={user}>
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-2">Welcome, {userName}</h1>
+        <h1 className="text-2xl font-bold mb-2">
+          Welcome, {user.name || user.email}
+        </h1>
         <p className="text-gray-600 mb-4">
           You are logged in as <strong>{user.role}</strong>.
         </p>
 
         <form action="/api/logout" method="POST">
-          <button
-            type="submit"
-            className="bg-red-600 text-white px-4 py-2 rounded mb-6"
-          >
+          <button className="bg-red-600 text-white px-4 py-2 rounded mb-6">
             Logout
           </button>
         </form>
@@ -64,14 +54,13 @@ export default async function DashboardPage() {
           <p>No tanks found.</p>
         ) : (
           <ul className="list-disc list-inside space-y-2">
-            {tanks.map((tank) => (
-              <li key={tank.id}>
+            {tanks.map((t) => (
+              <li key={t.id}>
                 <Link
-                  href={`/dashboard/tank/${tank.id}`}
+                  href={`/dashboard/tank/${t.id}`}
                   className="text-blue-600 underline"
                 >
-                  {tank.name || "Unnamed Tank"} – {tank.gallons} gallons –{" "}
-                  {tank.water_type}
+                  {t.name || "Unnamed Tank"} – {t.gallons} gallons – {t.water_type}
                 </Link>
               </li>
             ))}

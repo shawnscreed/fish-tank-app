@@ -1,4 +1,3 @@
-// 📄 src/app/dashboard/tank/[id]/compatibility/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -6,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
 import Link from "next/link";
+import type { Role } from "@/lib/auth";
 
 type Species = {
   id: number;
@@ -26,24 +26,13 @@ export default function CompatibilityPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { data: session, status } = useSession();
-  const [data, setData] = useState<ApiResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  /* ───────────────── fetch once authenticated ─────────────── */
-  useEffect(() => {
-    if (status !== "authenticated") return;
-    fetch(`/api/tank/${id}/compatibility`)
-      .then((res) => res.json())
-      .then((json) => setData(json))
-      .catch((e) => {
-        console.error(e);
-        setError("Failed to load compatibility data.");
-      });
-  }, [id, status]);
+  const [data,   setData]   = useState<ApiResponse | null>(null);
+  const [error,  setError]  = useState<string | null>(null);
 
-  /* ───────────────── session guards ───────────────────────── */
+  /* ───────────────────────── auth guard ───────────────────────── */
   if (status === "loading") return <div className="p-6">Checking session…</div>;
-  if (!session?.user) {
+  if (status === "unauthenticated" || !session?.user) {
     router.push("/login");
     return null;
   }
@@ -52,10 +41,30 @@ export default function CompatibilityPage() {
     id:   Number((session.user as any).id),
     name: session.user.name ?? "",
     email: session.user.email ?? "",
-    role: (session.user as any).role ?? "user",
+    role: (session.user as any).role as Role ?? "user",
   };
 
-  /* ───────────────── helpers ──────────────────────────────── */
+  /* ───────────────────────── fetch data ───────────────────────── */
+  useEffect(() => {
+    if (!id) return;
+    fetch(`/api/tank/${id}/compatibility`)
+      .then(async (res) => {
+        if (res.status === 403 || res.status === 404) {
+          router.push("/dashboard");         // unauthorized tank
+          return null;
+        }
+        return res.json();
+      })
+      .then((json) => {
+        if (json) setData(json);
+      })
+      .catch((e) => {
+        console.error(e);
+        setError("Failed to load compatibility data.");
+      });
+  }, [id, router]);
+
+  /* ───────────────────────── helpers ──────────────────────────── */
   const matrixMap = new Map<string, MatrixEntry>();
   data?.matrix.forEach((m) =>
     matrixMap.set(`${m.species1_id}-${m.species2_id}`, m)
@@ -67,9 +76,7 @@ export default function CompatibilityPage() {
 
     const id1 = data.species[i].id;
     const id2 = data.species[j].id;
-    const key  = `${id1}-${id2}`;
-    const key2 = `${id2}-${id1}`;
-    const entry = matrixMap.get(key) ?? matrixMap.get(key2);
+    const entry = matrixMap.get(`${id1}-${id2}`) ?? matrixMap.get(`${id2}-${id1}`);
 
     let bg = "bg-gray-300";
     let symbol = " ?";
@@ -85,7 +92,7 @@ export default function CompatibilityPage() {
 
     return (
       <td
-        key={key}
+        key={`${id1}-${id2}`}
         className={`${bg} text-center text-sm px-3 py-2 cursor-help`}
         title={entry?.reason ?? "No rule in database"}
       >
@@ -94,7 +101,7 @@ export default function CompatibilityPage() {
     );
   };
 
-  /* ───────────────── render ───────────────────────────────── */
+  /* ───────────────────────── render ───────────────────────────── */
   return (
     <ClientLayoutWrapper user={user}>
       <div className="p-6 max-w-4xl mx-auto">
@@ -134,7 +141,7 @@ export default function CompatibilityPage() {
               </tbody>
             </table>
             <p className="mt-3 text-xs text-gray-600">
-              ✓ compatible • ✕ incompatible • ? no data
+              ✓ compatible&nbsp;&nbsp;•&nbsp;&nbsp;✕ incompatible&nbsp;&nbsp;•&nbsp;&nbsp;? no data
             </p>
           </div>
         )}

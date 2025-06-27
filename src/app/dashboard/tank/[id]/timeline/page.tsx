@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
 import Link from "next/link";
+import type { Role } from "@/lib/auth"; // adjust path if needed
 
 type TimelineEvent = {
   id: number;
@@ -34,19 +35,6 @@ export default function TankTimelinePage() {
     maintenance: true,
   });
 
-  /* ─────────────────────── fetch timeline ─────────────────────── */
-  useEffect(() => {
-    if (!id || status !== "authenticated") return;
-
-    fetch(`/api/tank/${id}/timeline`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) setEvents(data);
-        else console.error("Timeline error:", data);
-      })
-      .catch((err) => console.error(err));
-  }, [id, status]);
-
   /* ─────────────────────── auth guards ────────────────────────── */
   if (status === "loading") return <div className="p-6">Checking session…</div>;
   if (status === "unauthenticated" || !session?.user) {
@@ -54,18 +42,38 @@ export default function TankTimelinePage() {
     return null;
   }
 
+  const user = {
+    id: Number((session.user as any).id),
+    email: session.user.email ?? "",
+    name: session.user.name ?? "",
+    role: (session.user as any).role as Role ?? "user",
+  };
+
+  /* ─────────────────────── fetch timeline ─────────────────────── */
+  useEffect(() => {
+    if (!id) return;
+
+    fetch(`/api/tank/${id}/timeline`)
+      .then(async (res) => {
+        if (res.status === 404 || res.status === 403) {
+          // Tank not found or unauthorized → bounce back to dashboard
+          router.push("/dashboard");
+          return [];
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data)) setEvents(data);
+        else console.error("Timeline error:", data);
+      })
+      .catch((err) => console.error(err));
+  }, [id, router]);
+
   /* ─────────────────────── helpers ────────────────────────────── */
   const toggleFilter = (t: TimelineEvent["type"]) =>
     setFilters((prev) => ({ ...prev, [t]: !prev[t] }));
 
   const visibleEvents = events.filter((ev) => filters[ev.type]);
-
-  const user = {
-    id: Number((session.user as any).id),
-    email: session.user.email!,
-    name: session.user.name ?? "",
-    role: (session.user as any).role ?? "user",
-  };
 
   /* ─────────────────────── render ─────────────────────────────── */
   return (
@@ -78,9 +86,7 @@ export default function TankTimelinePage() {
 
         {/* Filters */}
         <div className="flex gap-4 mb-6 flex-wrap">
-          {(
-            Object.keys(filters) as (keyof typeof filters)[]
-          ).map((type) => (
+          {(Object.keys(filters) as (keyof typeof filters)[]).map((type) => (
             <label key={type} className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"

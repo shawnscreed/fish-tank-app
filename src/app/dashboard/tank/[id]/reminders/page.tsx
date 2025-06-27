@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
@@ -19,6 +19,7 @@ interface Reminder {
 export default function TankRemindersPage() {
   const { id } = useParams<{ id: string }>();
   const tankId = Number(id);
+  const router  = useRouter();
 
   const [user, setUser] = useState<JWTUser | null>(null);
   const [reminders, setReminders] = useState<Reminder[]>([]);
@@ -29,11 +30,16 @@ export default function TankRemindersPage() {
   });
   const [hasDueReminders, setHasDueReminders] = useState(false);
 
+  /* ───────────── Helper to (re)load reminders ───────────── */
   const loadReminders = async () => {
     try {
       const res = await fetch(`/api/tank-reminder?tank_id=${tankId}`);
+      if (res.status === 403 || res.status === 404) {
+        // Not the owner or tank not found -> bounce
+        router.push("/dashboard");
+        return;
+      }
       const data: Reminder[] = await res.json();
-      console.log("📥 Loaded reminders:", data);
       setReminders(data);
       setHasDueReminders(data.some((r) => new Date(r.next_due) <= new Date()));
     } catch (err) {
@@ -41,31 +47,29 @@ export default function TankRemindersPage() {
     }
   };
 
+  /* ───────────── Initial load & session guard ───────────── */
   useEffect(() => {
-    const load = async () => {
+    (async () => {
       const u = await getUserFromClientCookies();
       if (!u) {
-        console.warn("❌ No session found – redirecting or showing error.");
+        router.push("/login");
         return;
       }
       setUser(u);
       await loadReminders();
-    };
-    load();
-  }, [tankId]);
+    })();
+  }, [tankId, router]);
 
+  /* ───────────── CRUD handlers ───────────── */
   const handleAdd = async () => {
-    const payload = {
-      ...newReminder,
-      frequency_days: Number(newReminder.frequency_days),
-      tank_id: tankId,
-    };
-    console.log("📤 Sending new reminder:", payload);
-
     await fetch(`/api/tank/${tankId}/reminders`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...newReminder,
+        frequency_days: Number(newReminder.frequency_days),
+        tank_id: tankId,
+      }),
     });
     setNewReminder({ type: "", frequency_days: "", notes: "" });
     await loadReminders();
@@ -89,6 +93,7 @@ export default function TankRemindersPage() {
     await loadReminders();
   };
 
+  /* ───────────── UI ───────────── */
   if (!user) {
     return (
       <div className="p-6 text-red-600">
@@ -108,6 +113,7 @@ export default function TankRemindersPage() {
           </div>
         )}
 
+        {/* Add Reminder Form */}
         <div className="mb-4 space-y-2">
           <input
             type="text"
@@ -146,12 +152,13 @@ export default function TankRemindersPage() {
           </button>
         </div>
 
-        <table className="w-full border">
+        {/* Reminders table */}
+        <table className="w-full border text-sm">
           <thead>
             <tr className="bg-gray-200 text-left">
               <th className="p-2">Type</th>
               <th>Next Due</th>
-              <th>Frequency (days)</th>
+              <th>Freq (days)</th>
               <th>Notes</th>
               <th>Actions</th>
             </tr>
@@ -168,7 +175,7 @@ export default function TankRemindersPage() {
                     onClick={() => handleDone(r.id)}
                     className="text-green-600 underline"
                   >
-                    Mark Done
+                    Done
                   </button>
                   <button
                     onClick={() => handleDelete(r.id)}

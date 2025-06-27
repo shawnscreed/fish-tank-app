@@ -1,4 +1,3 @@
-// 📄 src/app/api/tank/[id]/compatibility/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { getServerSession } from "next-auth";
@@ -13,10 +12,24 @@ export async function GET(
   const { id } = await context.params;
   const tankId = Number(id);
 
-  /* ── Auth guard ─────────────────────────────── */
+  /* ─────────── Auth guard ─────────── */
   const session = await getServerSession(authOptions);
-  if (!session?.user)
+  if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const userId = Number((session.user as any).id);
+
+  /* ─────────── Verify ownership ─────────── */
+  const { rowCount } = await pool.query(
+    `SELECT 1 FROM "Tank" WHERE id = $1 AND user_id = $2`,
+    [tankId, userId]
+  );
+
+  if (rowCount === 0) {
+    console.warn(`❌ User ${userId} tried to access compatibility of tank ${tankId}`);
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   try {
     /* ── 1. Load all fish in the tank ─────────── */
@@ -34,7 +47,7 @@ export async function GET(
     const matrix: {
       species1_id: number;
       species2_id: number;
-      compatible: boolean | null; // null = unknown / not in table
+      compatible: boolean | null;
       reason?: string | null;
     }[] = [];
 
@@ -66,7 +79,7 @@ export async function GET(
           matrix.push({
             species1_id: a,
             species2_id: b,
-            compatible: null, // unknown
+            compatible: null,
             reason: null,
           });
         }

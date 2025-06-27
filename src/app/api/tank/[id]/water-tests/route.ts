@@ -1,15 +1,39 @@
 // 📄 src/app/api/tank/[id]/water-tests/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/serverAuthOptions";
 
-// ───────────────────────────────────
+// 🧠 Helper to check ownership
+async function tankBelongsToUser(tankId: number, userId: number) {
+  const result = await pool.query(
+    `SELECT 1 FROM "Tank" WHERE id = $1 AND user_id = $2`,
+    [tankId, userId]
+  );
+return (result.rowCount ?? 0) > 0;
+
+}
+
+// ─────────────────────────────────────────────
 // GET  /api/tank/[id]/water-tests
-// ───────────────────────────────────
+// ─────────────────────────────────────────────
 export async function GET(
   _req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
+  const tankId = Number(id);
+
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const userId = Number(session.user.id);
+  const authorized = await tankBelongsToUser(tankId, userId);
+  if (!authorized) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   try {
     const { rows } = await pool.query(
@@ -19,7 +43,7 @@ export async function GET(
       WHERE tank_id = $1
       ORDER BY test_date DESC
       `,
-      [id]
+      [tankId]
     );
 
     return NextResponse.json(rows);
@@ -29,17 +53,29 @@ export async function GET(
   }
 }
 
-// ───────────────────────────────────
+// ─────────────────────────────────────────────
 // POST /api/tank/[id]/water-tests
-// ───────────────────────────────────
+// ─────────────────────────────────────────────
 export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
-  const body      = await req.json();
+  const tankId = Number(id);
 
-  // Convert empty strings to null so PG accepts them for NUMERIC columns
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const userId = Number(session.user.id);
+  const authorized = await tankBelongsToUser(tankId, userId);
+  if (!authorized) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const body = await req.json();
+
   const numOrNull = (v: unknown) =>
     v === "" || v === null || v === undefined ? null : Number(v);
 
@@ -51,7 +87,7 @@ export async function POST(
     nitrite,
     nitrate,
     temperature,
-    notes = null        // optional text column
+    notes = null
   } = body;
 
   try {
@@ -64,7 +100,7 @@ export async function POST(
       RETURNING *
       `,
       [
-        id,
+        tankId,
         numOrNull(ph),
         numOrNull(hardness),
         numOrNull(salinity),
@@ -76,7 +112,6 @@ export async function POST(
       ]
     );
 
-    // Return the inserted row so the UI can prepend it without refetching
     return NextResponse.json(rows[0]);
   } catch (err: any) {
     console.error("POST /api/tank/[id]/water-tests error:", err);

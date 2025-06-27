@@ -5,7 +5,8 @@ import { authOptions } from "@/lib/serverAuthOptions";
 import { redirect } from "next/navigation";
 import TankDetail from "@/components/TankDetail";
 import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
-import TankReminderAlert from "@/components/TankReminderAlert"; // ✅ NEW: Client-side alert
+import TankReminderAlert from "@/components/TankReminderAlert";
+import pool from "@/lib/db";
 
 type Role = "super_admin" | "sub_admin" | "admin" | "user" | "beta_user";
 
@@ -14,7 +15,8 @@ export default async function TankDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = await params; // ✅ Await the params
+  const { id } = await params;
+  const tankId = Number(id);
 
   const session = await getServerSession(authOptions);
 
@@ -30,15 +32,22 @@ export default async function TankDetailPage({
     role: (session.user as any).role as Role,
   };
 
-  const tankId = Number(id);
+  // ✅ Check DB to ensure this tank belongs to the user
+  const result = await pool.query(
+    `SELECT * FROM "Tank" WHERE id = $1 AND user_id = $2`,
+    [tankId, user.id]
+  );
+
+  if (result.rowCount === 0) {
+    console.warn(`❌ Tank ${tankId} not found or not owned by user ${user.id}`);
+    redirect("/dashboard");
+  }
 
   return (
     <ClientLayoutWrapper user={user}>
       <div className="p-6 space-y-4">
-        {/* ✅ Reminder alert if any are due */}
         <TankReminderAlert tankId={tankId} />
 
-        {/* ✅ Buttons */}
         <div className="flex flex-col sm:flex-row gap-2 justify-end">
           <a
             href={`/dashboard/tank/${tankId}/reminders`}
@@ -54,7 +63,6 @@ export default async function TankDetailPage({
           </a>
         </div>
 
-        {/* Tank info */}
         <TankDetail userId={user.id} tankId={tankId} />
       </div>
     </ClientLayoutWrapper>

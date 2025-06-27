@@ -16,8 +16,21 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const userId = Number((session.user as any).id);
+
+  // 🚫 Ownership check
+  const { rowCount } = await pool.query(
+    `SELECT 1 FROM "Tank" WHERE id = $1 AND user_id = $2`,
+    [tankId, userId]
+  );
+
+  if (rowCount === 0) {
+    console.warn(`❌ User ${userId} tried to access timeline of tank ${tankId}`);
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   try {
-    /* ───── 1) Water-tests  ───── */
+    /* ───── 1) Water-tests ───── */
     const waterTests = await pool.query(
       `
       SELECT
@@ -34,7 +47,7 @@ export async function GET(
       [tankId]
     );
 
-    /* ───── 2) Fish added  ───── */
+    /* ───── 2) Fish added ───── */
     const fish = await pool.query(
       `
       SELECT
@@ -49,7 +62,7 @@ export async function GET(
       [tankId]
     );
 
-    /* ───── 3) Water changes  ───── */
+    /* ───── 3) Water changes ───── */
     const waterChanges = await pool.query(
       `
       SELECT
@@ -68,7 +81,7 @@ export async function GET(
       [tankId]
     );
 
-    /* ───── 4) Chemical dosing / maintenance  ───── */
+    /* ───── 4) Chemical dosing / maintenance ───── */
     const maintenance = await pool.query(
       `
       SELECT
@@ -90,15 +103,13 @@ export async function GET(
       [tankId]
     );
 
-    /* ───── merge & sort newest→oldest ───── */
+    // 🧩 Combine and sort all events
     const events = [
       ...waterTests.rows,
       ...fish.rows,
       ...waterChanges.rows,
       ...maintenance.rows
-    ].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     return NextResponse.json(events);
   } catch (err: any) {
