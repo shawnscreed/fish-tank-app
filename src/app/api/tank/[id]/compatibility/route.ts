@@ -1,50 +1,76 @@
-// src/app/api/tank/[id]/compatibility/route.ts
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/serverAuthOptions";
 import pool from "@/lib/db";
 
 export async function GET(
-  _req: Request, // ✅ built-in Request (not NextRequest)
-  context: { params: Promise<{ id: string }> } // ✅ params is a Promise
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  /* ── extract tankId ── */
-  const { id } = await context.params;     // ← await here
+  /* ── tank + auth ── */
+  const { id } = await params;
   const tankId = Number(id);
 
-  /* ── auth guard ── */
   const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const userId = Number((session.user as any).id);
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  /* ── verify ownership ── */
+  const userId = Number((session.user as any).id);
   const { rowCount } = await pool.query(
     `SELECT 1 FROM "Tank" WHERE id = $1 AND user_id = $2`,
     [tankId, userId]
   );
-  if (!rowCount) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  if (!rowCount) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  /* ── fish in this tank ── */
+  /* ── species in this tank (fish + plants + inverts) ── */
   const { rows: species } = await pool.query(
     `
-      SELECT DISTINCT f.id, f.name, 'fish' AS type
-      FROM "TankFish" tf
-      JOIN "Fish"     f ON f.id = tf.fish_id
-      WHERE tf.tank_id = $1
+      SELECT * FROM (
+        SELECT f.id,
+               f.name,
+               'fish'  AS type,
+               f.ph_low,
+               f.ph_high,
+               f.temp_low,
+               f.temp_high
+        FROM "TankFish" tf
+        JOIN "Fish"     f ON f.id = tf.fish_id
+        WHERE tf.tank_id = $1
+
+        UNION
+
+        SELECT p.id,
+               p.name,
+               'plant' AS type,
+               p.ph_low,
+               p.ph_high,
+               p.temp_low,
+               p.temp_high
+        FROM "TankPlant" tp
+        JOIN "Plant"     p ON p.id = tp.plant_id
+        WHERE tp.tank_id = $1
+
+        UNION
+
+        SELECT i.id,
+               i.name,
+               'invert' AS type,
+               i.ph_low,
+               i.ph_high,
+               i.temp_low,
+               i.temp_high
+        FROM "TankInvert" ti
+        JOIN "Invert"     i ON i.id = ti.invert_id
+        WHERE ti.tank_id = $1
+      ) s
+      ORDER BY name
     `,
     [tankId]
   );
 
-  if (species.length === 0) {
-    return NextResponse.json({ species, matrix: [] });
-  }
+  if (species.length === 0) return NextResponse.json({ species, matrix: [] });
 
-  /* ── compatibility rules ── */
-  const ids = species.map((s) => s.id);
+  /* ── pair-wise compatibility rules ── */
+  const ids = species.map((s: any) => s.id);
   const { rows: matrix } = await pool.query(
     `
       SELECT species1_id,
