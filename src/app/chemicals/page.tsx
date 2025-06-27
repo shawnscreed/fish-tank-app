@@ -1,5 +1,5 @@
 // 📄 File: src/app/chemicals/page.tsx
-
+import MainContainer from "@/components/MainContainer";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/serverAuthOptions";
 import { redirect } from "next/navigation";

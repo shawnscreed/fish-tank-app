@@ -1,4 +1,5 @@
 "use client";
+import MainContainer from "@/components/MainContainer";
 import { useEffect, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
@@ -191,7 +192,7 @@ export default function AccessControlPage() {
 
   return (
     <ClientLayoutWrapper user={currentUser}>
-      <div className="p-6 max-w-7xl mx-auto">
+      <MainContainer>
         <h1 className="text-2xl font-bold mb-1">🔐 Access Control Panel</h1>
         <p className="text-sm text-gray-500 mb-4">
           Logged in as <strong>{currentUser.name || currentUser.email}</strong> ({currentUser.role})
@@ -345,7 +346,7 @@ export default function AccessControlPage() {
             ))}
           </tbody>
         </table>
-      </div>
+      </MainContainer>
     </ClientLayoutWrapper>
   );
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import MainContainer from "@/components/MainContainer";
+
 import { useEffect, useState } from "react";
 
 type Inverts = {
@@ -90,7 +92,8 @@ export default function InvertsTableClient() {
   ];
 
   return (
-    <div className="p-4">
+    <MainContainer>
+
       <h1 className="text-xl font-bold mb-4">Inverts Table</h1>
       <table className="w-full table-auto border-collapse border border-gray-300 text-sm">
         <thead>
@@ -202,6 +205,8 @@ export default function InvertsTableClient() {
           </tr>
         </tbody>
       </table>
-    </div>
+    
+    </MainContainer>
+
   );
 }

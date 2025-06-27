@@ -1,5 +1,5 @@
 // 📄 File: src/app/dashboard/tank/[id]/page.tsx
-
+import MainContainer from "@/components/MainContainer";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/serverAuthOptions";
 import { redirect } from "next/navigation";
@@ -45,7 +45,7 @@ export default async function TankDetailPage({
 
   return (
     <ClientLayoutWrapper user={user}>
-      <div className="p-6 space-y-4">
+      <MainContainer>
         <TankReminderAlert tankId={tankId} />
 
         <div className="flex flex-col sm:flex-row gap-2 justify-end">
@@ -64,7 +64,7 @@ export default async function TankDetailPage({
         </div>
 
         <TankDetail userId={user.id} tankId={tankId} />
-      </div>
+      </MainContainer>
     </ClientLayoutWrapper>
   );
 }

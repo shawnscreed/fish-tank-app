@@ -1,5 +1,5 @@
 "use client";
-
+import MainContainer from "@/components/MainContainer";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -36,7 +36,7 @@ export default function CompatibilityHome() {
 
   return (
     <ClientLayoutWrapper user={user}>
-      <div className="p-6 max-w-4xl mx-auto">
+      <MainContainer>
         <h1 className="text-2xl font-bold mb-4">Compatibility Checker</h1>
         <p className="text-gray-600 mb-6">
           Pick a tank to view its species compatibility matrix.
@@ -60,7 +60,7 @@ export default function CompatibilityHome() {
             ))}
           </ul>
         )}
-      </div>
+      </MainContainer>
     </ClientLayoutWrapper>
   );
 }

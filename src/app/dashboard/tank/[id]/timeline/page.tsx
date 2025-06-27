@@ -1,5 +1,5 @@
 "use client";
-
+import MainContainer from "@/components/MainContainer";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -90,7 +90,7 @@ export default function TankTimelinePage() {
   /* ───── UI ───── */
   return (
     <ClientLayoutWrapper user={user}>
-      <div className="p-6 max-w-2xl mx-auto">
+     <MainContainer>
         <h1 className="text-2xl font-bold mb-1">Tank Timeline</h1>
         <p className="text-gray-600 mb-4">
           A chronological history of this tank’s activity.
@@ -137,7 +137,7 @@ export default function TankTimelinePage() {
         >
           ← Back to Tank
         </Link>
-      </div>
+      </MainContainer>
     </ClientLayoutWrapper>
   );
 }

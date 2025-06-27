@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { ReactNode } from "react";
-import { signOut } from "next-auth/react"; // ✅ added
+import { signOut } from "next-auth/react";
 import { JWTUser } from "@/lib/auth";
 import UserStatus from "@/components/UserStatus";
 import { usePathname } from "next/navigation";
+import MobileSidebar from "@/components/MobileSidebar";
 
 interface ClientLayoutProps {
   user: JWTUser;
@@ -23,10 +24,8 @@ export default function ClientLayout({ children, user }: ClientLayoutProps) {
   const menuItems: MenuItem[] = [
     { name: "Dashboard", href: "/dashboard" },
     { name: "Products", href: "/dashboard/products" },
-     { name: "Compatibility", href: "/dashboard/compatibility" },
-
-       { name: "Feedback", href: "/dashboard/feedback" },
-       
+    { name: "Compatibility", href: "/dashboard/compatibility" },
+    { name: "Feedback", href: "/dashboard/feedback" },
   ];
 
   const adminPages: MenuItem[] =
@@ -35,9 +34,9 @@ export default function ClientLayout({ children, user }: ClientLayoutProps) {
           { name: "Fish", href: "/fish" },
           { name: "Plant", href: "/plant" },
           { name: "Inverts", href: "/inverts" },
-           { name: "Coral", href: "/coral" },
-    { name: "Tank", href: "/tank" },
-    { name: "Chemicals", href: "/chemicals" },
+          { name: "Coral", href: "/coral" },
+          { name: "Tank", href: "/tank" },
+          { name: "Chemicals", href: "/chemicals" },
         ]
       : [];
 
@@ -49,15 +48,18 @@ export default function ClientLayout({ children, user }: ClientLayoutProps) {
           { name: "Role Editor", href: "/admin/role-editor" },
           { name: "Referral Codes", href: "/admin/referral-code-manager" },
           { name: "Feedback Entries", href: "/admin/feedback-entry-viewer" },
-           { name: "Compatibility", href: "/admin/compatibility" },
+          { name: "Compatibility", href: "/admin/compatibility" },
         ]
       : [];
 
   const isActive = (href: string) => pathname === href;
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="w-64 bg-gray-100 p-4 border-r flex flex-col justify-between">
+    <div className="flex min-h-screen relative">
+      <MobileSidebar/> {/* 📱 Mobile Menu */}
+      
+      {/* 💻 Desktop Sidebar */}
+      <aside className="hidden md:block w-64 bg-gray-100 p-4 border-r flex flex-col justify-between">
         <div>
           <h2 className="text-lg font-semibold mb-4">Menu</h2>
           <ul className="space-y-2">
@@ -66,9 +68,7 @@ export default function ClientLayout({ children, user }: ClientLayoutProps) {
                 <Link
                   href={item.href}
                   className={`${
-                    isActive(item.href)
-                      ? "font-bold text-black"
-                      : "text-blue-600"
+                    isActive(item.href) ? "font-bold text-black" : "text-blue-600"
                   } hover:underline`}
                 >
                   {item.name}
@@ -86,9 +86,7 @@ export default function ClientLayout({ children, user }: ClientLayoutProps) {
                     <Link
                       href={item.href}
                       className={`${
-                        isActive(item.href)
-                          ? "font-bold text-black"
-                          : "text-blue-700"
+                        isActive(item.href) ? "font-bold text-black" : "text-blue-700"
                       } hover:underline`}
                     >
                       {item.name}
@@ -108,9 +106,7 @@ export default function ClientLayout({ children, user }: ClientLayoutProps) {
                     <Link
                       href={item.href}
                       className={`${
-                        isActive(item.href)
-                          ? "font-bold text-black"
-                          : "text-purple-700"
+                        isActive(item.href) ? "font-bold text-black" : "text-purple-700"
                       } hover:underline`}
                     >
                       {item.name}

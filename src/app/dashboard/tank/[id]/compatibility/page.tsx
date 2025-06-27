@@ -1,7 +1,8 @@
 
 // file: src/app/dashboard/tank/[id]/compatibility/page.tsx
-"use client";
 
+"use client";
+import MainContainer from "@/components/MainContainer";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -130,7 +131,7 @@ export default function CompatibilityPage() {
 
   return (
     <ClientLayoutWrapper user={user}>
-      <div className="p-6 max-w-5xl mx-auto">
+      <MainContainer>
         <h1 className="text-2xl font-bold mb-2">Compatibility Checker</h1>
         <p className="text-gray-600 mb-4">
           Fish, plants & inverts compatibility matrix. Header colours flag pH / temperature range overlaps.
@@ -171,7 +172,7 @@ export default function CompatibilityPage() {
         <Link href={`/dashboard/tank/${id}`} className="mt-8 inline-block text-blue-600 hover:underline">
           ← Back to Tank
         </Link>
-      </div>
+      </MainContainer>
     </ClientLayoutWrapper>
   );
 }

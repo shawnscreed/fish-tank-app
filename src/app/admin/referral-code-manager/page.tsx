@@ -1,7 +1,7 @@
 // 📄 Page: /admin/referral-code-manager/page.tsx
 
 "use client";
-
+import MainContainer from "@/components/MainContainer";
 import { useEffect, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -135,14 +135,14 @@ export default function AdminReferralCodeManagerPage() {
   if (status === "loading" || !currentUser) {
     return (
       <ClientLayoutWrapper user={currentUser || { id: 0, email: "", role: "user", name: "" }}>
-        <div className="p-6 text-gray-500">Checking session...</div>
+        <MainContainer>Checking session...</MainContainer>
       </ClientLayoutWrapper>
     );
   }
 
   return (
     <ClientLayoutWrapper user={currentUser}>
-      <div className="p-6">
+      <MainContainer>
         <h1 className="text-2xl font-bold mb-6">🎟 Referral Code Manager</h1>
 
         <div className="mb-6 border p-4 rounded bg-gray-50">
@@ -248,7 +248,7 @@ export default function AdminReferralCodeManagerPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </MainContainer>
     </ClientLayoutWrapper>
   );
 }

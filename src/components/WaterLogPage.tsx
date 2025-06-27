@@ -1,5 +1,7 @@
 "use client";
 
+import MainContainer from "@/components/MainContainer";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -121,7 +123,7 @@ export default function WaterLogPage({
   };
 
   return (
-    <div className="p-6">
+    <MainContainer>
       <Link href={`/dashboard/tank/${tankId}`}>
         <button className="mb-4 px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
           ← Back to Tank
@@ -257,6 +259,6 @@ export default function WaterLogPage({
           </tbody>
         </table>
       </div>
-    </div>
+    </MainContainer>
   );
 }

@@ -1,6 +1,6 @@
 // 📄 src/components/ProductsClientPage.tsx
 "use client";
-
+import MainContainer from "@/components/MainContainer";
 import { useEffect, useState } from "react";
 
 interface Product {
@@ -48,7 +48,7 @@ export default function ProductsClientPage() {
   if (error)   return <div className="p-4 text-red-500">{error}</div>;
 
   return (
-    <div className="p-4">
+    <MainContainer>
       <h2 className="text-xl font-bold mb-4">Available Products</h2>
 
       {products.length === 0 ? (
@@ -72,6 +72,6 @@ export default function ProductsClientPage() {
           ))}
         </ul>
       )}
-    </div>
+    </MainContainer>
   );
 }

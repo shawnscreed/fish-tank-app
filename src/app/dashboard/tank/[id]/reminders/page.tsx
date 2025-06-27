@@ -1,5 +1,5 @@
 "use client";
-
+import MainContainer from "@/components/MainContainer";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -104,7 +104,7 @@ export default function TankRemindersPage() {
 
   return (
     <ClientLayoutWrapper user={user}>
-      <div className="p-6">
+      <MainContainer>
         <h1 className="text-xl font-bold mb-4">Tank Maintenance Reminders</h1>
 
         {hasDueReminders && (
@@ -197,7 +197,7 @@ export default function TankRemindersPage() {
             ← Back to Tank
           </Link>
         </div>
-      </div>
+      </MainContainer>
     </ClientLayoutWrapper>
   );
 }

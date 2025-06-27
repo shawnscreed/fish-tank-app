@@ -10,6 +10,7 @@
     "build": "cross-env NODE_OPTIONS='--max-old-space-size=2048' next build"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "@prisma/client": "^6.10.0",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.2",

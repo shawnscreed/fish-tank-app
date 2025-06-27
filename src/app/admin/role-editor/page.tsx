@@ -1,7 +1,7 @@
 // 📄 Page: /admin/role-editor/page.tsx
 
 "use client";
-
+import MainContainer from "@/components/MainContainer";
 import { useEffect, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -91,14 +91,14 @@ export default function RoleEditorPage() {
   if (status === "loading" || !currentUser) {
     return (
       <ClientLayoutWrapper user={currentUser || { id: 0, email: "", role: "user", name: "" }}>
-        <div className="p-6 text-gray-500">Checking session...</div>
+        <MainContainer>Checking session...</MainContainer>
       </ClientLayoutWrapper>
     );
   }
 
   return (
     <ClientLayoutWrapper user={currentUser}>
-      <div className="p-6 max-w-5xl mx-auto">
+      <MainContainer>
         <h1 className="text-2xl font-bold mb-4">👥 Role Editor</h1>
 
         {loading ? (
@@ -141,7 +141,7 @@ export default function RoleEditorPage() {
             </table>
           </div>
         )}
-      </div>
+      </MainContainer>
     </ClientLayoutWrapper>
   );
 }

@@ -1,5 +1,5 @@
 "use client";
-
+import MainContainer from "@/components/MainContainer";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -92,7 +92,7 @@ export default function AdminCompatibilityPage() {
 
   return (
     <ClientLayoutWrapper user={user}>
-      <div className="p-6 max-w-5xl mx-auto">
+      <MainContainer>
         <h1 className="text-2xl font-bold mb-4">Species Compatibility Rules</h1>
 
         {/* Add new rule */}
@@ -156,7 +156,7 @@ export default function AdminCompatibilityPage() {
             </tbody>
           </table>
         )}
-      </div>
+      </MainContainer>
     </ClientLayoutWrapper>
   );
 }

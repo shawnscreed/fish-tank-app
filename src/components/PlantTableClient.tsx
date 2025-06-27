@@ -1,5 +1,7 @@
 "use client";
 
+import MainContainer from "@/components/MainContainer";
+
 import { useEffect, useState } from "react";
 
 type Plant = {
@@ -71,7 +73,7 @@ export default function PlantTableClient() {
   ];
 
   return (
-    <div className="p-4">
+    <MainContainer>
       <h1 className="text-xl font-bold mb-4">Plant Table</h1>
       <table className="w-full table-auto border-collapse border border-gray-300 rounded shadow-sm text-sm">
         <thead>
@@ -164,6 +166,6 @@ export default function PlantTableClient() {
           </tr>
         </tbody>
       </table>
-    </div>
+    </MainContainer>
   );
 }

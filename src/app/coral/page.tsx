@@ -1,7 +1,7 @@
 // 📄 File: src/app/coral/page.tsx
 
 "use client";
-
+import MainContainer from "@/components/MainContainer";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import ClientLayoutWrapper from "../../components/ClientLayoutWrapper";
@@ -99,7 +99,7 @@ export default function CoralPage() {
 
   return (
     <ClientLayoutWrapper user={user}>
-      <div className="p-4">
+      <MainContainer>
         <h1 className="text-xl font-bold mb-4">Coral Table</h1>
         <table className="w-full border-collapse border border-gray-300 text-sm">
           <thead>
@@ -178,7 +178,7 @@ export default function CoralPage() {
             </tr>
           </tbody>
         </table>
-      </div>
+      </MainContainer>
     </ClientLayoutWrapper>
   );
 }

@@ -1,7 +1,7 @@
 // 📄 Page: /admin/feedback-entry-viewer/page.tsx
 
 "use client";
-
+import MainContainer from "@/components/MainContainer";
 import { useEffect, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -76,14 +76,14 @@ export default function AdminFeedbackEntryViewerPage() {
   if (status === "loading" || !currentUser) {
     return (
       <ClientLayoutWrapper user={currentUser || { id: 0, email: "", role: "user", name: "" }}>
-        <div className="p-6 text-gray-500">Checking session...</div>
+        <MainContainer>Checking session...</MainContainer>
       </ClientLayoutWrapper>
     );
   }
 
   return (
     <ClientLayoutWrapper user={currentUser}>
-      <div className="p-6">
+      <MainContainer>
         <h1 className="text-2xl font-bold mb-4">Admin – Feedback Viewer</h1>
 
         <input
@@ -139,7 +139,7 @@ export default function AdminFeedbackEntryViewerPage() {
             </table>
           </div>
         )}
-      </div>
+      </MainContainer>
     </ClientLayoutWrapper>
   );
 }

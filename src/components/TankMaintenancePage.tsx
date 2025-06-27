@@ -1,5 +1,5 @@
 "use client";
-
+import MainContainer from "@/components/MainContainer";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 
@@ -105,7 +105,7 @@ export default function TankMaintenancePage({
   if (loading || !tank) return <div className="p-6">Loading tank...</div>;
 
   return (
-    <div className="p-6">
+    <MainContainer>
       <h1 className="text-xl font-bold mb-4">Maintenance Log for {tank.name}</h1>
 
       {/* Water Changes */}
@@ -197,6 +197,6 @@ export default function TankMaintenancePage({
           ← Back to Tank Details
         </Link>
       </div>
-    </div>
+    </MainContainer>
   );
 }

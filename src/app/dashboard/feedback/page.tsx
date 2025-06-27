@@ -1,6 +1,7 @@
 // 📄 Page: /dashboard/feedback/page.tsx
 
 "use client";
+import MainContainer from "@/components/MainContainer";
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
@@ -58,7 +59,7 @@ export default function FeedbackPage() {
 
   return (
     <ClientLayoutWrapper user={user}>
-      <div className="max-w-2xl mx-auto p-6">
+      <MainContainer>
         <h1 className="text-2xl font-bold mb-4">💬 Submit Feedback</h1>
 
         {submitted ? (
@@ -110,7 +111,7 @@ export default function FeedbackPage() {
             </button>
           </form>
         )}
-      </div>
+      </MainContainer>
     </ClientLayoutWrapper>
   );
 }
