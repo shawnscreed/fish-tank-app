@@ -1,75 +1,69 @@
-import { NextResponse } from "next/server";
-import pool from "@/lib/db";
+// src/app/api/tank/[id]/compatibility/route.ts
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/serverAuthOptions";
-
-type SpeciesRow = { id: number; name: string; type: "fish" };
-type MatrixRow  = {
-  species1_id: number;
-  species2_id: number;
-  compatible: boolean | null;
-  reason: string | null;
-};
+import pool from "@/lib/db";
 
 export async function GET(
-  _req: Request,                        // 1️⃣  use the standard Request type
-  { params }: { params: { id: string } }  // 2️⃣  plain params object
+  req: NextRequest,                     // ✅ first arg: NextRequest
+  { params }: { params: { id: string } } // ✅ second arg: ONLY { params }
 ) {
   const tankId = Number(params.id);
 
-  /* ───── Auth guard ───── */
+  /* ─── Auth ─── */
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const userId = Number((session.user as any).id);
 
-  /* ───── Verify ownership ───── */
+  /* ─── Verify ownership ─── */
   const { rowCount: owns } = await pool.query(
     `SELECT 1 FROM "Tank" WHERE id = $1 AND user_id = $2`,
     [tankId, userId]
   );
   if (!owns) {
-    console.warn(`❌ User ${userId} tried to access tank ${tankId}`);
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  try {
-    /* ── 1. Fish in this tank ── */
-    const { rows: species } = await pool.query<SpeciesRow>(
-      `
-        SELECT DISTINCT f.id, f.name, 'fish' AS type
-        FROM "TankFish" tf
-        JOIN "Fish"     f ON f.id = tf.fish_id
-        WHERE tf.tank_id = $1
-      `,
-      [tankId]
-    );
+  /* ─── Species in tank ─── */
+  const { rows: species } = await pool.query<{
+    id: number;
+    name: string;
+    type: "fish";
+  }>(
+    `
+      SELECT DISTINCT f.id, f.name, 'fish' AS type
+      FROM "TankFish" tf
+      JOIN "Fish"     f ON f.id = tf.fish_id
+      WHERE tf.tank_id = $1
+    `,
+    [tankId]
+  );
 
-    if (species.length === 0) {
-      return NextResponse.json({ species, matrix: [] });
-    }
-
-    /* ── 2. Compatibility rules in one query ── */
-    const speciesIds = species.map((s) => s.id);     // e.g. [24,16,23]
-
-    const { rows: matrix } = await pool.query<MatrixRow>(
-      `
-        SELECT species1_id,
-               species2_id,
-               compatible,
-               reason
-        FROM "SpeciesCompatibility"
-        WHERE species1_id = ANY ($1::int[])
-           OR species2_id = ANY ($1::int[])
-      `,
-      [speciesIds]
-    );
-
-    /* ── 3. Return JSON ── */
-    return NextResponse.json({ species, matrix });
-  } catch (err: any) {
-    console.error("❌ Compatibility API error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  if (species.length === 0) {
+    return NextResponse.json({ species, matrix: [] });
   }
+
+  /* ─── Compatibility rows in one query ─── */
+  const ids = species.map((s) => s.id);
+  const { rows: matrix } = await pool.query<{
+    species1_id: number;
+    species2_id: number;
+    compatible: boolean | null;
+    reason: string | null;
+  }>(
+    `
+      SELECT species1_id,
+             species2_id,
+             compatible,
+             reason
+      FROM "SpeciesCompatibility"
+      WHERE species1_id = ANY ($1::int[])
+         OR species2_id = ANY ($1::int[])
+    `,
+    [ids]
+  );
+
+  return NextResponse.json({ species, matrix });
 }
