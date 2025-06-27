@@ -1,3 +1,4 @@
+// 📄 File: src/components/ClientLayout.tsx
 "use client";
 
 import Link from "next/link";
@@ -52,14 +53,14 @@ export default function ClientLayout({ children, user }: ClientLayoutProps) {
         ]
       : [];
 
-  const isActive = (href: string) => pathname === href;
+  const isActive = (href: string) => pathname.startsWith(href);
 
   return (
     <div className="flex min-h-screen relative">
-      <MobileSidebar/> {/* 📱 Mobile Menu */}
-      
+      <MobileSidebar user={user} /> {/* 📱 Mobile Menu */}
+
       {/* 💻 Desktop Sidebar */}
-      <aside className="hidden md:block w-64 bg-gray-100 p-4 border-r flex flex-col justify-between">
+      <aside className="hidden md:block w-64 bg-gray-100 p-4 border-r flex flex-col justify-between overflow-y-auto">
         <div>
           <h2 className="text-lg font-semibold mb-4">Menu</h2>
           <ul className="space-y-2">
@@ -121,9 +122,11 @@ export default function ClientLayout({ children, user }: ClientLayoutProps) {
         <div className="mt-6 text-sm text-gray-600">
           <UserStatus />
           <button
-            onClick={() =>
-              signOut({ callbackUrl: `${window.location.origin}/login` })
-            }
+            onClick={() => {
+              if (typeof window !== "undefined") {
+                signOut({ callbackUrl: `${window.location.origin}/login` });
+              }
+            }}
             className="mt-2 text-red-600 hover:underline"
           >
             Logout
