@@ -1,41 +1,34 @@
-// src/app/api/tank/[id]/compatibility/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/serverAuthOptions";
 import pool from "@/lib/db";
 
+// ✅ Correct route signature!
 export async function GET(
-  req: NextRequest,                     // ✅ first arg: NextRequest
-  { params }: { params: { id: string } } // ✅ second arg: ONLY { params }
+  req: NextRequest,
+  context: { params: { id: string } }
 ) {
-  const tankId = Number(params.id);
+  const tankId = Number(context.params.id); // ✅ No destructuring here
 
-  /* ─── Auth ─── */
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const userId = Number((session.user as any).id);
 
-  /* ─── Verify ownership ─── */
-  const { rowCount: owns } = await pool.query(
+  const { rowCount } = await pool.query(
     `SELECT 1 FROM "Tank" WHERE id = $1 AND user_id = $2`,
     [tankId, userId]
   );
-  if (!owns) {
+  if (!rowCount) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  /* ─── Species in tank ─── */
-  const { rows: species } = await pool.query<{
-    id: number;
-    name: string;
-    type: "fish";
-  }>(
+  const { rows: species } = await pool.query(
     `
       SELECT DISTINCT f.id, f.name, 'fish' AS type
       FROM "TankFish" tf
-      JOIN "Fish"     f ON f.id = tf.fish_id
+      JOIN "Fish" f ON f.id = tf.fish_id
       WHERE tf.tank_id = $1
     `,
     [tankId]
@@ -45,19 +38,10 @@ export async function GET(
     return NextResponse.json({ species, matrix: [] });
   }
 
-  /* ─── Compatibility rows in one query ─── */
   const ids = species.map((s) => s.id);
-  const { rows: matrix } = await pool.query<{
-    species1_id: number;
-    species2_id: number;
-    compatible: boolean | null;
-    reason: string | null;
-  }>(
+  const { rows: matrix } = await pool.query(
     `
-      SELECT species1_id,
-             species2_id,
-             compatible,
-             reason
+      SELECT species1_id, species2_id, compatible, reason
       FROM "SpeciesCompatibility"
       WHERE species1_id = ANY ($1::int[])
          OR species2_id = ANY ($1::int[])
