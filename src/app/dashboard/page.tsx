@@ -8,11 +8,18 @@ import AddTankForm from "@/components/AddTankForm";
 import Link from "next/link";
 import pool from "@/lib/db";
 
-type Role = "super_admin" | "sub_admin" | "admin" | "user" | "beta_user";
+// Allowed roles
+export type Role =
+  | "super_admin"
+  | "sub_admin"
+  | "admin"
+  | "user"
+  | "beta_user";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
 
+  // 🔐 Redirect if not authenticated
   if (!session?.user?.id || Number.isNaN(Number(session.user.id))) {
     redirect("/login");
   }
@@ -24,45 +31,86 @@ export default async function DashboardPage() {
     role: (session.user as any).role as Role,
   };
 
+  // 🐠 Fetch user tanks
   const { rows: tanks } = await pool.query(
     `SELECT id, name, gallons, water_type
-       FROM "Tank"
-      WHERE user_id = $1
-      ORDER BY id`,
+     FROM "Tank"
+     WHERE user_id = $1
+     ORDER BY id`,
     [user.id]
   );
 
   return (
     <ClientLayoutWrapper user={user}>
       <MainContainer>
-        <h1 className="text-2xl font-bold mb-2">
-          Welcome, {user.name || user.email}
-        </h1>
-        <p className="text-gray-600 mb-4">
-          You are logged in as <strong>{user.role}</strong>.
-        </p>
+        {/* ───────────── Header ───────────── */}
+        <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <p className="text-gray-600">
+              Welcome back, <span className="font-semibold">{user.name || user.email}</span>
+              <span className="ml-1 italic text-gray-500">({user.role})</span>
+            </p>
+          </div>
 
-        <form action="/api/logout" method="POST">
-          <button className="bg-red-600 text-white px-4 py-2 rounded mb-6">
-            Logout
-          </button>
-        </form>
+          <div className="flex gap-2">
+            <AddTankForm userId={String(user.id)} />
+            <form action="/api/logout" method="POST">
+              <button className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition">
+                Logout
+              </button>
+            </form>
+          </div>
+        </header>
 
-        <AddTankForm userId={String(user.id)} />
-
-        <h2 className="text-xl font-semibold mt-6 mb-2">Your Tanks</h2>
+        {/* ───────────── Tanks Grid ───────────── */}
         {tanks.length === 0 ? (
-          <p>No tanks found.</p>
+          <p className="text-gray-500">
+            You don’t have any tanks yet – use “Add Tank” above to create one.
+          </p>
         ) : (
-          <ul className="list-disc list-inside space-y-2">
+          <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {tanks.map((t) => (
-              <li key={t.id}>
-                <Link
-                  href={`/dashboard/tank/${t.id}`}
-                  className="text-blue-600 underline"
-                >
-                  {t.name || "Unnamed Tank"} – {t.gallons} gallons – {t.water_type}
-                </Link>
+              <li
+                key={t.id}
+                className="rounded-xl border bg-white shadow-sm hover:shadow-md transition overflow-hidden"
+              >
+                <div className="p-4">
+                  <h3 className="text-lg font-semibold truncate">
+                    {t.name || "Unnamed Tank"}
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    {t.gallons} gal • {t.water_type}
+                  </p>
+                </div>
+
+                {/* Quick-action links */}
+                <nav className="grid grid-cols-2 border-t divide-x">
+                  <Link
+                    href={`/dashboard/tank/${t.id}`}
+                    className="p-2 text-center text-sm hover:bg-gray-50"
+                  >
+                    Details
+                  </Link>
+                  <Link
+                    href={`/dashboard/tank/${t.id}/timeline`}
+                    className="p-2 text-center text-sm hover:bg-gray-50"
+                  >
+                    Timeline
+                  </Link>
+                  <Link
+                    href={`/dashboard/tank/${t.id}/maintenance`}
+                    className="p-2 text-center text-sm hover:bg-gray-50"
+                  >
+                    Maintenance
+                  </Link>
+                  <Link
+                    href={`/dashboard/tank/${t.id}/water-tests`}
+                    className="p-2 text-center text-sm hover:bg-gray-50"
+                  >
+                    Water Tests
+                  </Link>
+                </nav>
               </li>
             ))}
           </ul>
