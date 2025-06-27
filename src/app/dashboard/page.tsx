@@ -1,4 +1,5 @@
 // 📄 src/app/dashboard/page.tsx
+import MainContainer from "@/components/MainContainer";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/serverAuthOptions";
 import { redirect } from "next/navigation";
@@ -33,7 +34,7 @@ export default async function DashboardPage() {
 
   return (
     <ClientLayoutWrapper user={user}>
-      <div className="p-6">
+      <MainContainer>
         <h1 className="text-2xl font-bold mb-2">
           Welcome, {user.name || user.email}
         </h1>
@@ -66,7 +67,7 @@ export default async function DashboardPage() {
             ))}
           </ul>
         )}
-      </div>
+      </MainContainer>
     </ClientLayoutWrapper>
   );
 }
