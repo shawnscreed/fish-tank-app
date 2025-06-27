@@ -10,21 +10,30 @@ export async function GET(
   try {
     const { id } = await params;
     const tankId = Number(id);
+    console.log("🐟 Checking compatibility for tank ID:", tankId);
 
     const session = await getServerSession(authOptions);
-    if (!session?.user)
+    if (!session?.user) {
+      console.log("⛔ No session");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const userId = Number((session.user as any).id);
-    const { rowCount } = await pool.query(
+    console.log("👤 Authenticated user:", userId);
+
+    const tankResult = await pool.query(
       `SELECT 1 FROM "Tank" WHERE id = $1 AND user_id = $2`,
       [tankId, userId]
     );
-    if (!rowCount)
+    if (!tankResult.rowCount) {
+      console.log("❌ Tank doesn't belong to user or doesn't exist");
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     // ── Load species ──
-    const { rows: species } = await pool.query(
+    console.log("🔄 Loading species in tank...");
+
+    const speciesQuery = await pool.query(
       `
       SELECT * FROM (
         SELECT CONCAT('fish-', f.id) AS id, f.name, 'fish' AS type,
@@ -52,39 +61,39 @@ export async function GET(
       [tankId]
     );
 
-    console.log("✅ Loaded species:", species);
+    const species = speciesQuery.rows;
+    console.log("✅ Species loaded:", species);
 
     if (!species || !Array.isArray(species)) {
-      console.error("❌ species is not an array:", species);
-      return NextResponse.json({ error: "Server error" }, { status: 500 });
+      console.log("❌ Species result invalid");
+      return NextResponse.json({ error: "Species query failed" }, { status: 500 });
     }
 
-    if (!species.length)
+    if (!species.length) {
+      console.log("ℹ️ No species in tank");
       return NextResponse.json({ species: [], matrix: [] });
+    }
 
-    // ── Load compatibility matrix ──
     const ids = species.map((s) => s.id);
-    const { rows: matrix } = await pool.query(
+    console.log("🔍 Species IDs:", ids);
+
+    const matrixQuery = await pool.query(
       `
       SELECT species1_id, species2_id, compatible, reason
-      FROM   "SpeciesCompatibility"
-      WHERE  species1_id = ANY ($1::text[])
-         OR  species2_id = ANY ($1::text[])
+      FROM "SpeciesCompatibility"
+      WHERE species1_id = ANY ($1::text[])
+         OR species2_id = ANY ($1::text[])
       `,
       [ids]
     );
 
-    console.log("✅ Loaded matrix:", matrix);
-
-    if (!matrix || !Array.isArray(matrix)) {
-      console.error("❌ matrix is not an array:", matrix);
-      return NextResponse.json({ error: "Server error" }, { status: 500 });
-    }
+    const matrix = matrixQuery.rows;
+    console.log("✅ Compatibility matrix:", matrix);
 
     return NextResponse.json({ species, matrix });
 
   } catch (err: any) {
-    console.error("💥 Tank compatibility error:", err);
+    console.error("💥 Compatibility route crashed:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
