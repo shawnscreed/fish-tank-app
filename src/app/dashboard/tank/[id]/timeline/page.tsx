@@ -7,9 +7,16 @@ import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
 import Link from "next/link";
 import type { Role } from "@/lib/auth";
 
+/* ───────── event + icon definitions ───────── */
 type TimelineEvent = {
   id: number;
-  type: "water_test" | "fish_added" | "water_change" | "maintenance";
+  type:
+    | "water_test"
+    | "fish_added"
+    | "plant_added"
+    | "invert_added"
+    | "water_change"
+    | "maintenance";
   date: string | null;
   summary: string;
 };
@@ -17,12 +24,14 @@ type TimelineEvent = {
 const eventIcons: Record<TimelineEvent["type"], string> = {
   water_test: "💧",
   fish_added: "🐟",
+  plant_added: "🌿",
+  invert_added: "🦐",
   water_change: "🔁",
   maintenance: "🛠️",
 };
+/* ──────────────────────────────────────────── */
 
 export default function TankTimelinePage() {
-  /* ───────── hooks that must run every render (order never changes) ──────── */
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -31,18 +40,18 @@ export default function TankTimelinePage() {
   const [filters, setFilters] = useState<Record<TimelineEvent["type"], boolean>>({
     water_test: true,
     fish_added: true,
+    plant_added: true,
+    invert_added: true,
     water_change: true,
     maintenance: true,
   });
 
-  /* ───────── redirect unauthenticated users AFTER mounting ───────── */
+  /* ───── redirect unauthenticated users ───── */
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login");
-    }
+    if (status === "unauthenticated") router.push("/login");
   }, [status, router]);
 
-  /* ───────── fetch timeline once authenticated ───────── */
+  /* ───── fetch timeline after auth ───── */
   useEffect(() => {
     if (!id || status !== "authenticated") return;
 
@@ -61,15 +70,10 @@ export default function TankTimelinePage() {
       .catch(console.error);
   }, [id, status, router]);
 
-  /* ───────── loading / redirect placeholders (hooks already executed) ───── */
-  if (status === "loading" || !id) {
-    return <div className="p-6">Checking session…</div>;
-  }
-  if (status === "unauthenticated" || !session?.user) {
-    return <div className="p-6">Redirecting…</div>;
-  }
+  /* ───── loading / redirect placeholders ───── */
+  if (status === "loading" || !id) return <div className="p-6">Checking session…</div>;
+  if (!session?.user) return <div className="p-6">Redirecting…</div>;
 
-  /* ───────── current user object ───────── */
   const user = {
     id: Number((session.user as any).id),
     email: session.user.email ?? "",
@@ -77,13 +81,13 @@ export default function TankTimelinePage() {
     role: (session.user as any).role as Role ?? "user",
   };
 
-  /* ───────── helpers ───────── */
+  /* ───── helpers ───── */
   const toggleFilter = (t: TimelineEvent["type"]) =>
     setFilters((prev) => ({ ...prev, [t]: !prev[t] }));
 
   const visibleEvents = events.filter((ev) => filters[ev.type]);
 
-  /* ───────── render ───────── */
+  /* ───── UI ───── */
   return (
     <ClientLayoutWrapper user={user}>
       <div className="p-6 max-w-2xl mx-auto">
@@ -103,7 +107,7 @@ export default function TankTimelinePage() {
               />
               <span>
                 {eventIcons[type]}{" "}
-                {type.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+                {type.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
               </span>
             </label>
           ))}
