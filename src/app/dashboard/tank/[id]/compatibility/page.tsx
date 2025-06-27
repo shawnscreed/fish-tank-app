@@ -7,64 +7,64 @@ import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
 import Link from "next/link";
 import type { Role } from "@/lib/auth";
 
-type Species = {
-  id: number;
-  name: string;
-  type: "fish";
-};
-
+/* -------------------- types -------------------- */
+type Species = { id: number; name: string; type: "fish" };
 type MatrixEntry = {
   species1_id: number;
   species2_id: number;
-  compatible: boolean | null; // null = unknown
+  compatible: boolean | null;
   reason?: string | null;
 };
-
 type ApiResponse = { species: Species[]; matrix: MatrixEntry[] };
 
+/* ------------------------------------------------ */
 export default function CompatibilityPage() {
+  /* ---------- stable hook order (ALWAYS) ---------- */
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { data: session, status } = useSession();
 
-  const [data,   setData]   = useState<ApiResponse | null>(null);
-  const [error,  setError]  = useState<string | null>(null);
+  const [data, setData] = useState<ApiResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  /* ───────────────────────── auth guard ───────────────────────── */
-  if (status === "loading") return <div className="p-6">Checking session…</div>;
-  if (status === "unauthenticated" || !session?.user) {
-    router.push("/login");
-    return null;
-  }
-
-  const user = {
-    id:   Number((session.user as any).id),
-    name: session.user.name ?? "",
-    email: session.user.email ?? "",
-    role: (session.user as any).role as Role ?? "user",
-  };
-
-  /* ───────────────────────── fetch data ───────────────────────── */
+  /* ---------- redirect unauthenticated in effect ---------- */
   useEffect(() => {
-    if (!id) return;
+    if (status === "unauthenticated") router.push("/login");
+  }, [status, router]);
+
+  /* ---------- fetch data once authenticated ---------- */
+  useEffect(() => {
+    if (!id || status !== "authenticated") return;
+
     fetch(`/api/tank/${id}/compatibility`)
       .then(async (res) => {
         if (res.status === 403 || res.status === 404) {
-          router.push("/dashboard");         // unauthorized tank
+          router.push("/dashboard");
           return null;
         }
         return res.json();
       })
-      .then((json) => {
-        if (json) setData(json);
-      })
+      .then((json) => json && setData(json))
       .catch((e) => {
         console.error(e);
         setError("Failed to load compatibility data.");
       });
-  }, [id, router]);
+  }, [id, status, router]);
 
-  /* ───────────────────────── helpers ──────────────────────────── */
+  /* ---------- loading / redirect placeholders ---------- */
+  if (status === "loading") return <div className="p-6">Checking session…</div>;
+  if (status === "unauthenticated" || !session?.user)
+    return <div className="p-6">Redirecting…</div>;
+
+  /* ---------- current user ---------- */
+  const user = {
+    id: Number((session.user as any).id),
+    email: session.user.email ?? "",
+    name: session.user.name ?? "",
+    role: (session.user as any).role as Role ?? "user",
+  };
+
+  /* ---------- helpers ---------- */
   const matrixMap = new Map<string, MatrixEntry>();
   data?.matrix.forEach((m) =>
     matrixMap.set(`${m.species1_id}-${m.species2_id}`, m)
@@ -76,17 +76,18 @@ export default function CompatibilityPage() {
 
     const id1 = data.species[i].id;
     const id2 = data.species[j].id;
-    const entry = matrixMap.get(`${id1}-${id2}`) ?? matrixMap.get(`${id2}-${id1}`);
+    const entry =
+      matrixMap.get(`${id1}-${id2}`) ?? matrixMap.get(`${id2}-${id1}`);
 
     let bg = "bg-gray-300";
-    let symbol = " ?";
+    let symbol = "?";
     if (entry) {
       if (entry.compatible === true) {
         bg = "bg-green-200";
-        symbol = " ✓";
+        symbol = "✓";
       } else if (entry.compatible === false) {
         bg = "bg-red-300";
-        symbol = " ✕";
+        symbol = "✕";
       }
     }
 
@@ -101,7 +102,7 @@ export default function CompatibilityPage() {
     );
   };
 
-  /* ───────────────────────── render ───────────────────────────── */
+  /* ---------- render ---------- */
   return (
     <ClientLayoutWrapper user={user}>
       <div className="p-6 max-w-4xl mx-auto">

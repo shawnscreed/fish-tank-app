@@ -1,4 +1,3 @@
-// 📄 src/app/dashboard/tank/[id]/timeline/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -6,12 +5,12 @@ import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
 import Link from "next/link";
-import type { Role } from "@/lib/auth"; // adjust path if needed
+import type { Role } from "@/lib/auth";
 
 type TimelineEvent = {
   id: number;
   type: "water_test" | "fish_added" | "water_change" | "maintenance";
-  date: string;
+  date: string | null;
   summary: string;
 };
 
@@ -23,6 +22,7 @@ const eventIcons: Record<TimelineEvent["type"], string> = {
 };
 
 export default function TankTimelinePage() {
+  /* ───────── hooks that must run every render (order never changes) ──────── */
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -35,28 +35,20 @@ export default function TankTimelinePage() {
     maintenance: true,
   });
 
-  /* ─────────────────────── auth guards ────────────────────────── */
-  if (status === "loading") return <div className="p-6">Checking session…</div>;
-  if (status === "unauthenticated" || !session?.user) {
-    router.push("/login");
-    return null;
-  }
-
-  const user = {
-    id: Number((session.user as any).id),
-    email: session.user.email ?? "",
-    name: session.user.name ?? "",
-    role: (session.user as any).role as Role ?? "user",
-  };
-
-  /* ─────────────────────── fetch timeline ─────────────────────── */
+  /* ───────── redirect unauthenticated users AFTER mounting ───────── */
   useEffect(() => {
-    if (!id) return;
+    if (status === "unauthenticated") {
+      router.push("/login");
+    }
+  }, [status, router]);
+
+  /* ───────── fetch timeline once authenticated ───────── */
+  useEffect(() => {
+    if (!id || status !== "authenticated") return;
 
     fetch(`/api/tank/${id}/timeline`)
       .then(async (res) => {
-        if (res.status === 404 || res.status === 403) {
-          // Tank not found or unauthorized → bounce back to dashboard
+        if (res.status === 403 || res.status === 404) {
           router.push("/dashboard");
           return [];
         }
@@ -66,16 +58,32 @@ export default function TankTimelinePage() {
         if (Array.isArray(data)) setEvents(data);
         else console.error("Timeline error:", data);
       })
-      .catch((err) => console.error(err));
-  }, [id, router]);
+      .catch(console.error);
+  }, [id, status, router]);
 
-  /* ─────────────────────── helpers ────────────────────────────── */
+  /* ───────── loading / redirect placeholders (hooks already executed) ───── */
+  if (status === "loading" || !id) {
+    return <div className="p-6">Checking session…</div>;
+  }
+  if (status === "unauthenticated" || !session?.user) {
+    return <div className="p-6">Redirecting…</div>;
+  }
+
+  /* ───────── current user object ───────── */
+  const user = {
+    id: Number((session.user as any).id),
+    email: session.user.email ?? "",
+    name: session.user.name ?? "",
+    role: (session.user as any).role as Role ?? "user",
+  };
+
+  /* ───────── helpers ───────── */
   const toggleFilter = (t: TimelineEvent["type"]) =>
     setFilters((prev) => ({ ...prev, [t]: !prev[t] }));
 
   const visibleEvents = events.filter((ev) => filters[ev.type]);
 
-  /* ─────────────────────── render ─────────────────────────────── */
+  /* ───────── render ───────── */
   return (
     <ClientLayoutWrapper user={user}>
       <div className="p-6 max-w-2xl mx-auto">
@@ -109,7 +117,7 @@ export default function TankTimelinePage() {
               <div key={`${ev.type}-${ev.id}`} className="relative">
                 <div className="absolute -left-[1.05rem] top-1 w-4 h-4 bg-blue-500 rounded-full" />
                 <div className="text-sm text-gray-500">
-                  {new Date(ev.date).toLocaleString()}
+                  {ev.date ? new Date(ev.date).toLocaleString() : "Unknown date"}
                 </div>
                 <div className="font-semibold">
                   {eventIcons[ev.type]} {ev.summary}
