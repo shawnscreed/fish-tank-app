@@ -13,25 +13,18 @@ interface Rule {
   reason: string | null;
 }
 
+interface FishOption {
+  id: number;
+  name: string;
+}
+
 export default function AdminCompatibilityPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
 
-  const [rules, setRules] = useState<Rule[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const [newRule, setNewRule] = useState({
-    species1_id: "",
-    species2_id: "",
-    compatible: true,
-    reason: "",
-  });
-
   /* ───────────────────────── Auth Guards ───────────────────────── */
   if (status === "loading") return <div className="p-6">Checking session…</div>;
   if (!session?.user || !["admin", "super_admin"].includes((session.user as any).role)) {
-    // Redirect non‑admins to home/login
     router.push("/login");
     return null;
   }
@@ -43,20 +36,38 @@ export default function AdminCompatibilityPage() {
     role: (session.user as any).role,
   };
 
+  /* ───────────────────────── State ─────────────────────────────── */
+  const [rules, setRules]   = useState<Rule[]>([]);
+  const [fish,  setFish]    = useState<FishOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState<string | null>(null);
+
+  const [newRule, setNewRule] = useState({
+    species1_id: "",
+    species2_id: "",
+    compatible: true,
+    reason: "",
+  });
+
   /* ───────────────────────── Initial Fetch ─────────────────────── */
   useEffect(() => {
+    /** load rules */
     fetch("/api/admin/compatibility")
-      .then((res) => res.json())
-      .then((data) => {
-        if (!Array.isArray(data)) return setError(data.error);
-        setRules(data);
-      })
-      .catch(() => setError("Failed to load rules"))
+      .then((r) => r.json())
+      .then((d) => (Array.isArray(d) ? setRules(d) : setError(d.error)))
+      .catch(() => setError("Failed to load rules"));
+
+    /** load fish names for dropdown */
+    fetch("/api/fish")
+      .then((r) => r.json())
+      .then((d) => Array.isArray(d) && setFish(d))
+      .catch(() => console.warn("Could not load fish list"))
       .finally(() => setLoading(false));
   }, []);
 
   /* ───────────────────────── CRUD helpers ──────────────────────── */
   const handleAdd = async () => {
+    if (!newRule.species1_id || !newRule.species2_id) return alert("Choose both species");
     const res = await fetch("/api/admin/compatibility", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -80,6 +91,9 @@ export default function AdminCompatibilityPage() {
     if (res.ok) setRules((prev) => prev.filter((r) => r.id !== id));
   };
 
+  /* helper to render fish name */
+  const nameFor = (id: number) => fish.find((f) => f.id === id)?.name ?? id;
+
   /* ───────────────────────── Render ────────────────────────────── */
   return (
     <ClientLayoutWrapper user={user}>
@@ -90,20 +104,31 @@ export default function AdminCompatibilityPage() {
         <div className="mb-6 border p-4 rounded shadow-sm">
           <h2 className="text-lg font-semibold mb-2">Add New Rule</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <input
-              type="number"
-              placeholder="Species 1 ID"
+            {/* Species 1 dropdown */}
+            <select
               className="border p-2"
               value={newRule.species1_id}
               onChange={(e) => setNewRule({ ...newRule, species1_id: e.target.value })}
-            />
-            <input
-              type="number"
-              placeholder="Species 2 ID"
+            >
+              <option value="">Select Species 1</option>
+              {fish.map((f) => (
+                <option key={f.id} value={f.id}>{f.name}</option>
+              ))}
+            </select>
+
+            {/* Species 2 dropdown */}
+            <select
               className="border p-2"
               value={newRule.species2_id}
               onChange={(e) => setNewRule({ ...newRule, species2_id: e.target.value })}
-            />
+            >
+              <option value="">Select Species 2</option>
+              {fish.map((f) => (
+                <option key={f.id} value={f.id}>{f.name}</option>
+              ))}
+            </select>
+
+            {/* Compatible selector */}
             <select
               className="border p-2"
               value={newRule.compatible ? "true" : "false"}
@@ -112,6 +137,8 @@ export default function AdminCompatibilityPage() {
               <option value="true">Compatible</option>
               <option value="false">Incompatible</option>
             </select>
+
+            {/* Reason */}
             <input
               type="text"
               placeholder="Reason (optional)"
@@ -147,8 +174,8 @@ export default function AdminCompatibilityPage() {
                 {rules.map((r) => (
                   <tr key={r.id} className="hover:bg-gray-50">
                     <td className="border p-2">{r.id}</td>
-                    <td className="border p-2">{r.species1_id}</td>
-                    <td className="border p-2">{r.species2_id}</td>
+                    <td className="border p-2">{nameFor(r.species1_id)}</td>
+                    <td className="border p-2">{nameFor(r.species2_id)}</td>
                     <td className="border p-2 text-center">{r.compatible ? "✅" : "❌"}</td>
                     <td className="border p-2">{r.reason ?? "—"}</td>
                     <td className="border p-2 text-center">
