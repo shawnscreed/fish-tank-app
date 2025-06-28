@@ -105,7 +105,7 @@ export default async function DashboardPage() {
                     Maintenance
                   </Link>
                   <Link
-                    href={`/dashboard/tank/${t.id}/water-tests`}
+                    href={`/dashboard/tank/${t.id}/water`}
                     className="p-2 text-center text-sm hover:bg-gray-50"
                   >
                     Water Tests
