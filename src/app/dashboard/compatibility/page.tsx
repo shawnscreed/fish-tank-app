@@ -1,38 +1,31 @@
-"use client";
-import MainContainer from "@/components/MainContainer";
-import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+// 📄 File: src/app/dashboard/compatibility/page.tsx
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/serverAuthOptions";
+import { redirect } from "next/navigation";
 import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
+import MainContainer from "@/components/MainContainer";
+import pool from "@/lib/db";
 import Link from "next/link";
 
-type Tank = { id: number; name: string };
+export default async function CompatibilityPage() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) redirect("/login");
 
-export default function CompatibilityHome() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const [tanks, setTanks] = useState<Tank[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const userId = Number(session.user.id);
+  const user = {
+    id: userId,
+    name: session.user.name ?? "",
+    email: session.user.email ?? "",
+    role: (session.user as any).role,
+  };
 
-  // 🔐 redirect guests
-  useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-  }, [status, router]);
-
-  // 📥 load user’s tanks
-  useEffect(() => {
-    if (status !== "authenticated") return;
-
-    fetch("/api/tank") // ← must return { id, name } for current user
-      .then((r) => r.json())
-      .then(setTanks)
-      .catch(() => setError("Could not load tanks"));
-  }, [status]);
-
-  if (status === "loading") return <div className="p-6">Checking session…</div>;
-  if (!session?.user) return <div className="p-6">Redirecting…</div>;
-
-  const user = session.user as any;
+  // 🔒 Only fetch tanks belonging to the logged-in user
+  const { rows: tanks } = await pool.query(
+    `SELECT id, name FROM "Tank"
+     WHERE user_id = $1 AND in_use = TRUE
+     ORDER BY id ASC`,
+    [userId]
+  );
 
   return (
     <ClientLayoutWrapper user={user}>
@@ -41,8 +34,6 @@ export default function CompatibilityHome() {
         <p className="text-gray-600 mb-6">
           Pick a tank to view its species compatibility matrix.
         </p>
-
-        {error && <p className="text-red-600">{error}</p>}
 
         {tanks.length === 0 ? (
           <p className="italic text-gray-500">You have no tanks yet.</p>
