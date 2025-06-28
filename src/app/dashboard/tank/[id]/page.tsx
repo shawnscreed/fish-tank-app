@@ -65,7 +65,7 @@ export default async function TankDetailPage({
             📅 Tank Timeline
           </a>
           <a
-            href={`/dashboard/tank/${tankId}/water-tests`}
+            href={`/dashboard/tank/${tankId}/water`}
             className="bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700 text-sm"
           >
             💧 Water Tests
