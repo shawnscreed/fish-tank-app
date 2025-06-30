@@ -7,7 +7,7 @@ interface StockItem {
   name: string;
   type: string;
 }
-
+ 
 export default function StockList({ stock }: { stock: StockItem[] }) {
   const grouped = stock.reduce<Record<string, StockItem[]>>((acc, item) => {
     if (!acc[item.type]) acc[item.type] = [];
