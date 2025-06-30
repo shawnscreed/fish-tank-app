@@ -1,5 +1,4 @@
-
-// 📄 Page: /dashboard/tank/[id]
+// 📄 Page: TankDetail.tsx
 
 "use client";
 
@@ -89,10 +88,14 @@ export default function TankDetail({
       setInverts(invertRes.ok ? await invertRes.json() : []);
       setCorals(coralRes.ok ? await coralRes.json() : []);
 
-      setAvailableFish(fishList.ok ? await fishList.json() : []);
-      setAvailablePlants(plantList.ok ? await plantList.json() : []);
-      setAvailableInverts(invertList.ok ? await invertList.json() : []);
-      setAvailableCorals(coralList.ok ? await coralList.json() : []);
+      const wt = tankData.water_type;
+      const filterByWaterType = (list: any[]) =>
+        list.filter((i) => wt === "brackish" || i.water_type === wt);
+
+      setAvailableFish(fishList.ok ? filterByWaterType(await fishList.json()) : []);
+      setAvailablePlants(plantList.ok ? filterByWaterType(await plantList.json()) : []);
+      setAvailableInverts(invertList.ok ? filterByWaterType(await invertList.json()) : []);
+      setAvailableCorals(coralList.ok ? filterByWaterType(await coralList.json()) : []);
     } catch (err) {
       console.error("Failed to load tank data:", err);
     } finally {
@@ -157,11 +160,21 @@ export default function TankDetail({
     corals: "coral_id",
   };
 
+  const typeToRoute: Record<string, string> = {
+    fish: "/api/tankfish",
+    plants: "/api/tankplants",
+    inverts: "/api/tankinverts",
+    corals: "/api/tankcoral",
+  };
+
   const assignItem = async (type: string, itemId: number) => {
-    await fetch(`/api/tanks/${tankId}/${type}`, {
+    await fetch(typeToRoute[type], {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ [typeToIdKey[type]]: itemId }),
+      body: JSON.stringify({
+        tank_id: tankId,
+        [typeToIdKey[type]]: itemId,
+      }),
     });
     loadTankDetails();
   };
@@ -174,9 +187,9 @@ export default function TankDetail({
     const payload =
       type === "fish" || type === "plants"
         ? { assignment_id: assignmentId }
-        : { [typeToIdKey[type]]: itemId };
+        : { id: assignmentId ?? itemId };
 
-    await fetch(`/api/tanks/${tankId}/${type}`, {
+    await fetch(typeToRoute[type], {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
