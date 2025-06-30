@@ -9,7 +9,7 @@ type WishlistItem = {
   species_type: "fish" | "plant" | "invert" | "coral";
   species_id: number;
   created_at: string;
-  name: string; // We will fetch species name by joining or via separate queries in backend API
+  name: string; // Species name fetched from backend API
 };
 
 export default function TankWishlistPage() {
@@ -43,7 +43,6 @@ export default function TankWishlistPage() {
     setAddingId(wishlistItemId);
     setMessage(null);
 
-    // Find the wishlist item
     const item = wishlist.find((w) => w.id === wishlistItemId);
     if (!item) {
       setMessage("Invalid wishlist item");
@@ -51,7 +50,6 @@ export default function TankWishlistPage() {
       return;
     }
 
-    // Map species_type to API routes
     const routeMap: Record<string, string> = {
       fish: "/api/tankfish",
       plant: "/api/tankplant",
@@ -69,13 +67,16 @@ export default function TankWishlistPage() {
       const res = await fetch(route, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tank_id: tankId, [`${item.species_type}_id`]: item.species_id }),
+        body: JSON.stringify({
+          tank_id: tankId,
+          [`${item.species_type}_id`]: item.species_id,
+        }),
       });
       if (!res.ok) throw new Error("Failed to add species to tank");
 
       setMessage(`Added ${item.species_type} to tank!`);
 
-      // Optionally refresh wishlist (you may want to remove this item from wishlist)
+      // Remove added item from wishlist locally
       setWishlist(wishlist.filter((w) => w.id !== wishlistItemId));
     } catch (e) {
       setMessage("Failed to add species. Try again.");
@@ -113,7 +114,9 @@ export default function TankWishlistPage() {
             <tr key={item.id}>
               <td className="border px-2 py-1">{item.name}</td>
               <td className="border px-2 py-1 capitalize">{item.species_type}</td>
-              <td className="border px-2 py-1">{new Date(item.created_at).toLocaleDateString()}</td>
+              <td className="border px-2 py-1">
+                {new Date(item.created_at).toLocaleDateString()}
+              </td>
               <td className="border px-2 py-1 text-center">
                 <button
                   onClick={() => addToTank(item.id)}

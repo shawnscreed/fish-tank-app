@@ -56,7 +56,8 @@ export default function StockingSuggestionsPage() {
     fetchSuggestions();
   }, [tankId, session, status]);
 
-  const addToTank = async (speciesId: number, type: string) => {
+  // Updated function: Add species to wishlist (not directly to tank)
+  const addToWishlist = async (speciesId: number, type: string) => {
     if (!session) {
       setMessage("You must be logged in to add species.");
       return;
@@ -64,28 +65,19 @@ export default function StockingSuggestionsPage() {
 
     setAddingId(speciesId);
     setMessage(null);
-    const routeMap: Record<string, string> = {
-      fish: "/api/tankfish",
-      plant: "/api/tankplant",
-      invert: "/api/tankinverts",
-      coral: "/api/tankcoral",
-    };
-    const route = routeMap[type];
-    if (!route) {
-      setMessage("Invalid species type");
-      setAddingId(null);
-      return;
-    }
-
     try {
-      const res = await fetch(route, {
+      const res = await fetch(`/api/tankwishlist`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tank_id: tankId, [`${type}_id`]: speciesId }),
+        body: JSON.stringify({
+          tank_id: tankId,
+          species_id: speciesId,
+          species_type: type,
+        }),
       });
-      if (!res.ok) throw new Error("Failed to add species");
+      if (!res.ok) throw new Error("Failed to add species to wishlist");
 
-      setMessage(`Added ${type} successfully!`);
+      setMessage(`Added ${type} to wishlist successfully!`);
 
       // Refresh suggestions list after adding
       const refreshed = await fetch(`/api/tanks/${tankId}/stocking-suggestions`);
@@ -99,7 +91,7 @@ export default function StockingSuggestionsPage() {
     }
   };
 
-  // If session is null or undefined, pass a fallback user with minimal required fields and valid role
+  // Use user info from session for layout
   const userForLayout: JWTUser = session?.user
     ? {
         id: Number(session.user.id),
@@ -187,7 +179,7 @@ export default function StockingSuggestionsPage() {
                         </td>
                         <td className="border px-2 py-1 text-center">
                           <button
-                            onClick={() => addToTank(s.id, s.type)}
+                            onClick={() => addToWishlist(s.id, s.type)}
                             disabled={addingId === s.id}
                             className={`px-3 py-1 rounded text-white ${
                               addingId === s.id
@@ -195,7 +187,7 @@ export default function StockingSuggestionsPage() {
                                 : "bg-green-600 hover:bg-green-700"
                             }`}
                           >
-                            {addingId === s.id ? "Adding..." : "Add to Tank"}
+                            {addingId === s.id ? "Adding..." : "Add to Wishlist"}
                           </button>
                         </td>
                       </tr>
