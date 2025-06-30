@@ -1,8 +1,7 @@
-// 📄 Page: /components/TankDetail.tsx
-
 "use client";
 
 import { useEffect, useState } from "react";
+import QRCode from "react-qr-code";
 import Link from "next/link";
 
 interface Tank {
@@ -10,6 +9,7 @@ interface Tank {
   name: string;
   gallons: number;
   water_type: string;
+  public_id: string;
 }
 
 interface WaterTest {
@@ -24,18 +24,14 @@ interface WaterTest {
   notes?: string;
 }
 
-export default function TankDetail({
-  userId,
-  tankId,
-}: {
-  userId: number;
-  tankId: number;
-}) {
+export default function TankDetail({ userId, tankId }: { userId: number; tankId: number }) {
   const [tank, setTank] = useState<Tank | null>(null);
   const [name, setName] = useState("");
   const [gallons, setGallons] = useState(0);
   const [latestTest, setLatestTest] = useState<WaterTest | null>(null);
   const [loading, setLoading] = useState(true);
+  const [alerts, setAlerts] = useState<string[]>([]);
+  const [showQR, setShowQR] = useState(false);
 
   const [fish, setFish] = useState<any[]>([]);
   const [plants, setPlants] = useState<any[]>([]);
@@ -46,8 +42,6 @@ export default function TankDetail({
   const [availablePlants, setAvailablePlants] = useState<any[]>([]);
   const [availableInverts, setAvailableInverts] = useState<any[]>([]);
   const [availableCorals, setAvailableCorals] = useState<any[]>([]);
-
-  const [alerts, setAlerts] = useState<string[]>([]);
 
   const loadTankDetails = async () => {
     try {
@@ -65,16 +59,8 @@ export default function TankDetail({
       ]);
 
       const [
-        tankRes,
-        testRes,
-        fishRes,
-        plantRes,
-        invertRes,
-        coralRes,
-        fishList,
-        plantList,
-        invertList,
-        coralList,
+        tankRes, testRes, fishRes, plantRes, invertRes, coralRes,
+        fishList, plantList, invertList, coralList
       ] = responses;
 
       const tankData = await tankRes.json();
@@ -92,13 +78,13 @@ export default function TankDetail({
       const filterByWaterType = (list: any[]) =>
         list.filter((i) => wt === "brackish" || i.water_type === wt);
 
-  const sortByName = (arr: any[]) =>
-  arr.sort((a, b) => a.name.localeCompare(b.name)); 
+      const sortByName = (arr: any[]) =>
+        arr.sort((a, b) => a.name.localeCompare(b.name));
 
-  setAvailableFish(fishList.ok ? sortByName(filterByWaterType(await fishList.json())) : []);
-setAvailablePlants(plantList.ok ? sortByName(filterByWaterType(await plantList.json())) : []);
-setAvailableInverts(invertList.ok ? sortByName(filterByWaterType(await invertList.json())) : []);
-setAvailableCorals(coralList.ok ? sortByName(filterByWaterType(await coralList.json())) : []);
+      setAvailableFish(fishList.ok ? sortByName(filterByWaterType(await fishList.json())) : []);
+      setAvailablePlants(plantList.ok ? sortByName(filterByWaterType(await plantList.json())) : []);
+      setAvailableInverts(invertList.ok ? sortByName(filterByWaterType(await invertList.json())) : []);
+      setAvailableCorals(coralList.ok ? sortByName(filterByWaterType(await coralList.json())) : []);
     } catch (err) {
       console.error("Failed to load tank data:", err);
     } finally {
@@ -120,25 +106,19 @@ setAvailableCorals(coralList.ok ? sortByName(filterByWaterType(await coralList.j
 
     fish.forEach((f) => {
       if (
-        f.ph_low !== null &&
-        f.ph_high !== null &&
+        f.ph_low !== null && f.ph_high !== null &&
         (latestTest.ph < f.ph_low || latestTest.ph > f.ph_high)
       ) {
         newAlerts.push(`${f.name} is outside its preferred pH range.`);
       }
-
       if (
-        f.temp_low !== null &&
-        f.temp_high !== null &&
-        latestTest.temperature !== undefined &&
+        f.temp_low !== null && f.temp_high !== null && latestTest.temperature !== undefined &&
         (latestTest.temperature < f.temp_low || latestTest.temperature > f.temp_high)
       ) {
         newAlerts.push(`${f.name} is outside its preferred temperature range.`);
       }
-
       if (
-        f.hardness_low !== null &&
-        f.hardness_high !== null &&
+        f.hardness_low !== null && f.hardness_high !== null &&
         (latestTest.hardness < f.hardness_low || latestTest.hardness > f.hardness_high)
       ) {
         newAlerts.push(`${f.name} is outside its preferred hardness range.`);
@@ -174,19 +154,12 @@ setAvailableCorals(coralList.ok ? sortByName(filterByWaterType(await coralList.j
     await fetch(typeToRoute[type], {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        tank_id: tankId,
-        [typeToIdKey[type]]: itemId,
-      }),
+      body: JSON.stringify({ tank_id: tankId, [typeToIdKey[type]]: itemId }),
     });
     loadTankDetails();
   };
 
-  const deleteItem = async (
-    type: string,
-    itemId: number,
-    assignmentId?: number
-  ) => {
+  const deleteItem = async (type: string, itemId: number, assignmentId?: number) => {
     const rowId = assignmentId ?? itemId;
     await fetch(typeToRoute[type], {
       method: "DELETE",
@@ -196,45 +169,31 @@ setAvailableCorals(coralList.ok ? sortByName(filterByWaterType(await coralList.j
     loadTankDetails();
   };
 
-  const typeLabels: Record<string, string> = {
-    fish: "fish",
-    plants: "plant",
-    inverts: "invert",
-    corals: "coral",
-  };
-
   const renderSection = (type: string, list: any[], options: any[]) => (
     <div className="mb-8">
-      <h2 className="text-lg font-semibold mb-1 capitalize">
-        {typeLabels[type]}
-      </h2>
+      <h2 className="text-lg font-semibold mb-1 capitalize">{type}</h2>
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          const id = parseInt(
-            (e.currentTarget as any)[`select_${type}`].value
-          );
+          const id = parseInt((e.currentTarget as any)[`select_${type}`].value);
           if (id) assignItem(type, id);
         }}
         className="mb-2"
       >
         <select name={`select_${type}`} className="border px-2 py-1 mr-2">
-          <option value="">Select {typeLabels[type]}</option>
+          <option value="">Select {type}</option>
           {options.map((o) => (
             <option key={o.id} value={o.id}>
               {o.name}
             </option>
           ))}
         </select>
-        <button
-          type="submit"
-          className="bg-green-600 text-white px-3 py-1 rounded"
-        >
+        <button type="submit" className="bg-green-600 text-white px-3 py-1 rounded">
           Assign
         </button>
       </form>
       {list.length === 0 ? (
-        <p className="text-gray-600">No {typeLabels[type]} assigned yet.</p>
+        <p className="text-gray-600">No {type} assigned yet.</p>
       ) : (
         <table className="w-full mt-2 border text-sm">
           <thead>
@@ -250,20 +209,12 @@ setAvailableCorals(coralList.ok ? sortByName(filterByWaterType(await coralList.j
             {list.map((item) => (
               <tr key={`${type}-${item.assignment_id ?? item.id}`}>
                 <td className="border px-2 py-1">{item.name}</td>
-                <td className="border px-2 py-1">
-                  {item.ph_low ?? "N/A"}–{item.ph_high ?? "N/A"}
-                </td>
-                <td className="border px-2 py-1">
-                  {item.hardness_low ?? "N/A"}–{item.hardness_high ?? "N/A"}
-                </td>
-                <td className="border px-2 py-1">
-                  {item.temp_low ?? "N/A"}–{item.temp_high ?? "N/A"}
-                </td>
+                <td className="border px-2 py-1">{item.ph_low ?? "N/A"}–{item.ph_high ?? "N/A"}</td>
+                <td className="border px-2 py-1">{item.hardness_low ?? "N/A"}–{item.hardness_high ?? "N/A"}</td>
+                <td className="border px-2 py-1">{item.temp_low ?? "N/A"}–{item.temp_high ?? "N/A"}</td>
                 <td className="border px-2 py-1 text-center">
                   <button
-                    onClick={() =>
-                      deleteItem(type, item.id, item.assignment_id)
-                    }
+                    onClick={() => deleteItem(type, item.id, item.assignment_id)}
                     className="text-red-600 underline"
                   >
                     Delete
@@ -279,6 +230,8 @@ setAvailableCorals(coralList.ok ? sortByName(filterByWaterType(await coralList.j
 
   if (loading) return <p>Loading tank...</p>;
   if (!tank) return <p>Tank not found or access denied.</p>;
+
+  const publicUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://fishkeeperapp.com"}/t/${tank.public_id}`;
 
   return (
     <div className="p-4 max-w-3xl space-y-6">
@@ -296,28 +249,13 @@ setAvailableCorals(coralList.ok ? sortByName(filterByWaterType(await coralList.j
       <h1 className="text-2xl font-bold">{name || `Unnamed Tank`}</h1>
 
       <div>
-        <label className="block text-sm font-medium text-gray-600">
-          Tank Name
-        </label>
-        <input
-          className="w-full px-3 py-2 border rounded"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onBlur={saveTank}
-        />
+        <label className="block text-sm font-medium text-gray-600">Tank Name</label>
+        <input className="w-full px-3 py-2 border rounded" value={name} onChange={(e) => setName(e.target.value)} onBlur={saveTank} />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-600">
-          Gallons
-        </label>
-        <input
-          type="number"
-          className="w-full px-3 py-2 border rounded"
-          value={gallons}
-          onChange={(e) => setGallons(Number(e.target.value))}
-          onBlur={saveTank}
-        />
+        <label className="block text-sm font-medium text-gray-600">Gallons</label>
+        <input type="number" className="w-full px-3 py-2 border rounded" value={gallons} onChange={(e) => setGallons(Number(e.target.value))} onBlur={saveTank} />
       </div>
 
       <p>
@@ -326,10 +264,7 @@ setAvailableCorals(coralList.ok ? sortByName(filterByWaterType(await coralList.j
         <strong>Gallons:</strong> {gallons}
       </p>
 
-      <Link
-        href={`/dashboard/tank/${tankId}/water`}
-        className="block text-blue-600 underline hover:text-blue-800"
-      >
+      <Link href={`/dashboard/tank/${tankId}/water`} className="block text-blue-600 underline hover:text-blue-800">
         View & Log Water Tests
       </Link>
 
@@ -341,34 +276,26 @@ setAvailableCorals(coralList.ok ? sortByName(filterByWaterType(await coralList.j
 
       {latestTest && (
         <div className="bg-blue-50 border p-4 mt-4 rounded">
-          <h2 className="text-lg font-semibold mb-2">
-            Most Recent Water Test
-          </h2>
-          <p>
-            <strong>Date:</strong>{" "}
-            {new Date(latestTest.created_at).toLocaleString()}
-          </p>
-          <p>
-            <strong>pH:</strong> {latestTest.ph}
-          </p>
-          <p>
-            <strong>Hardness:</strong> {latestTest.hardness}
-          </p>
-          <p>
-            <strong>Ammonia:</strong> {latestTest.ammonia}
-          </p>
-          <p>
-            <strong>Nitrite:</strong> {latestTest.nitrite}
-          </p>
-          <p>
-            <strong>Nitrate:</strong> {latestTest.nitrate}
-          </p>
-          <p>
-            <strong>Salinity:</strong> {latestTest.salinity ?? "N/A"}
-          </p>
-          <p>
-            <strong>Notes:</strong> {latestTest.notes ?? "None"}
-          </p>
+          <h2 className="text-lg font-semibold mb-2">Most Recent Water Test</h2>
+          <p><strong>Date:</strong> {new Date(latestTest.created_at).toLocaleString()}</p>
+          <p><strong>pH:</strong> {latestTest.ph}</p>
+          <p><strong>Hardness:</strong> {latestTest.hardness}</p>
+          <p><strong>Ammonia:</strong> {latestTest.ammonia}</p>
+          <p><strong>Nitrite:</strong> {latestTest.nitrite}</p>
+          <p><strong>Nitrate:</strong> {latestTest.nitrate}</p>
+          <p><strong>Salinity:</strong> {latestTest.salinity ?? "N/A"}</p>
+          <p><strong>Notes:</strong> {latestTest.notes ?? "None"}</p>
+        </div>
+      )}
+
+      <button onClick={() => setShowQR(!showQR)} className="bg-gray-700 text-white px-4 py-2 rounded">
+        {showQR ? "Hide QR Label" : "Show QR Label"}
+      </button>
+
+      {showQR && (
+        <div className="mt-4 flex flex-col items-center">
+          <QRCode value={publicUrl} size={160} />
+          <p className="text-sm mt-2 text-gray-600">{publicUrl}</p>
         </div>
       )}
 

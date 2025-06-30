@@ -32,17 +32,17 @@ export default function RoadmapPage() {
           <section>
             <h2 className="text-xl font-semibold mt-8 mb-2">✅ Phase 1: MVP Essentials</h2>
             <ul className="list-disc ml-6 text-gray-800 space-y-1">
-              <li>User Registration with Referral Code</li>
-              <li>Login System (Email + Google OAuth)</li>
-              <li>Dashboard Page + Custom Sidebar</li>
-              <li>Tank Naming + Tank List/Details</li>
-              <li>Add & View Fish in Tank</li>
-              <li>Water Parameters + Alerts</li>
-              <li>Feedback Form + Viewer</li>
-              <li>Placeholder Paid Feature Logic</li>
-              <li>Developer/Admin Tools</li>
-              <li>Deployment Online</li>
-              <li>Data Privacy (User-level isolation)</li>
+              <li>✅ User Registration with Referral Code</li>
+              <li>✅ Login System (Email + Google OAuth)</li>
+              <li>✅ Dashboard Page + Custom Sidebar</li>
+              <li>✅ Tank Naming + Tank List/Details</li>
+              <li>✅ Add & View Fish in Tank</li>
+              <li>✅ Water Parameters + Alerts</li>
+              <li>✅ Feedback Form + Viewer</li>
+              <li>✅ Placeholder Paid Feature Logic</li>
+              <li>✅ Developer/Admin Tools</li>
+              <li>✅ Deployment Online</li>
+              <li>✅ Data Privacy (User-level isolation)</li>
             </ul>
           </section>
 
@@ -57,14 +57,14 @@ export default function RoadmapPage() {
               <li>📸 Photo Journal for tanks</li>
               <li>🧠 Stocking Suggestions</li>
               <li>🖰 Printable Reports</li>
-              <li>🔍 Compatibility Checker</li>
+              <li>✅ 🔍 Compatibility Checker- needs more data on back end.</li>
               <li>🏷 QR Tank Labels</li>
-              <li>🧾 Water Test Logging & Timeline</li>
-              <li>🖊️ Maintenance Logs</li>
-              <li>✉️ Contact/Feedback Viewer (Admin)</li>
-              <li>🦫 Referral Role Editor (Admin)</li>
-              <li>🧱 Access Level Controls</li>
-              <li>📃 Roadmap Page (this page)</li>
+              <li>✅ 🧾 Water Test Logging & Timeline</li>
+              <li>✅ 🖊️ Maintenance Logs</li>
+              <li>✅ ✉️ Contact/Feedback Viewer (Admin)</li>
+              <li>✅ 🦫 Referral Role Editor (Admin)</li>
+              <li>✅ 🧱 Access Level Controls</li>
+              <li>✅ 📃 Roadmap Page (this page)</li>
             </ul>
           </section>
 
@@ -72,10 +72,10 @@ export default function RoadmapPage() {
           <section>
             <h2 className="text-xl font-semibold mt-8 mb-2">💼 Phase 3: Paid Features</h2>
             <ul className="list-disc ml-6 text-gray-800 space-y-1">
-              <li>Multiple tanks per user</li>
-              <li>Maintenance Reminders</li>
-              <li>Advanced Timeline filtering</li>
-              <li>Water Parameter Alert Notifications</li>
+              <li>✅ Multiple tanks per user</li>
+              <li>✅ Maintenance Reminders</li>
+              <li>✅ Advanced Timeline filtering</li>
+              <li>✅ Water Parameter Alert Notifications</li>
               <li>Premium Stocking Suggestions</li>
               <li>Referral-based Role Levels</li>
               <li>Subscription Management</li>
