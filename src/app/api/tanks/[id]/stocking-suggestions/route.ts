@@ -12,6 +12,9 @@ export async function GET(
     return NextResponse.json({ error: "Invalid tank id" }, { status: 400 });
   }
 
+  // Helper to avoid empty arrays causing SQL errors
+  const safeArray = (arr: number[]) => (arr.length > 0 ? arr : [-1]);
+
   try {
     // 1. Get tank water_type
     const tankResult = await pool.query(
@@ -56,7 +59,7 @@ export async function GET(
       AND id != ALL($2::int[])
       ORDER BY name
       `,
-      [waterType, stockedFishIds.length ? stockedFishIds : [0]]
+      [waterType, safeArray(stockedFishIds)]
     );
 
     // 4. Query compatible plants not already in tank
@@ -67,7 +70,7 @@ export async function GET(
       AND id != ALL($2::int[])
       ORDER BY name
       `,
-      [waterType, stockedPlantIds.length ? stockedPlantIds : [0]]
+      [waterType, safeArray(stockedPlantIds)]
     );
 
     // 5. Query compatible inverts not already in tank
@@ -78,7 +81,7 @@ export async function GET(
       AND id != ALL($2::int[])
       ORDER BY name
       `,
-      [waterType, stockedInvertIds.length ? stockedInvertIds : [0]]
+      [waterType, safeArray(stockedInvertIds)]
     );
 
     // 6. Query compatible corals (only for salt or brackish) not in tank
@@ -91,7 +94,7 @@ export async function GET(
         AND id != ALL($2::int[])
         ORDER BY name
         `,
-        [waterType, stockedCoralIds.length ? stockedCoralIds : [0]]
+        [waterType, safeArray(stockedCoralIds)]
       );
       coralRows = coralQuery.rows;
     }
