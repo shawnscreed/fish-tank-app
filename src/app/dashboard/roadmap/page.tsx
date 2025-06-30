@@ -54,11 +54,10 @@ export default function RoadmapPage() {
               <li>✅ Saltwater & Brackish tank support</li>
               <li>✅ Coral support</li>
               <li>✅ Google OAuth fix</li>
-              <li>📸 Photo Journal for tanks</li>
               <li>🧠 Stocking Suggestions</li>
               <li>🖰 Printable Reports</li>
               <li>✅ 🔍 Compatibility Checker- needs more data on back end.</li>
-              <li>🏷 QR Tank Labels</li>
+              <li>✅ 🏷 QR Tank Labels</li>
               <li>✅ 🧾 Water Test Logging & Timeline</li>
               <li>✅ 🖊️ Maintenance Logs</li>
               <li>✅ ✉️ Contact/Feedback Viewer (Admin)</li>
@@ -79,6 +78,7 @@ export default function RoadmapPage() {
               <li>Premium Stocking Suggestions</li>
               <li>Referral-based Role Levels</li>
               <li>Subscription Management</li>
+              <li>📸 Photo Journal for tanks</li>
             </ul>
           </section>
 
