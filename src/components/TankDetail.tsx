@@ -1,4 +1,4 @@
-// 📄 Page: TankDetail.tsx
+// 📄 Page: /dashboard/tank/[id]
 
 "use client";
 
@@ -184,20 +184,17 @@ export default function TankDetail({
     itemId: number,
     assignmentId?: number
   ) => {
-    const payload =
-      type === "fish" || type === "plants"
-        ? { assignment_id: assignmentId }
-        : { id: assignmentId ?? itemId };
-
+    const rowId = assignmentId ?? itemId;
     await fetch(typeToRoute[type], {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ id: rowId }),
     });
 
     loadTankDetails();
   };
 
+ 
   const typeLabels: Record<string, string> = {
     fish: "fish",
     plants: "plant",
