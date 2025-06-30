@@ -23,6 +23,7 @@ export default function TankWishlistPage() {
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingId, setAddingId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -101,6 +102,33 @@ export default function TankWishlistPage() {
       console.error(e);
     } finally {
       setAddingId(null);
+    }
+  };
+
+  const deleteFromWishlist = async (wishlistItemId: number) => {
+    if (!session) {
+      setMessage("You must be logged in to delete species.");
+      return;
+    }
+
+    setDeletingId(wishlistItemId);
+    setMessage(null);
+
+    try {
+      const res = await fetch(`/api/tankwishlist/${wishlistItemId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete wishlist item");
+
+      setMessage("Deleted from wishlist.");
+
+      // Remove deleted item from wishlist locally
+      setWishlist(wishlist.filter((w) => w.id !== wishlistItemId));
+    } catch (e) {
+      setMessage("Failed to delete species. Try again.");
+      console.error(e);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -190,6 +218,15 @@ export default function TankWishlistPage() {
                     }`}
                   >
                     {addingId === item.id ? "Adding..." : "Add to Tank"}
+                  </button>
+                  <button
+                    onClick={() => deleteFromWishlist(item.id)}
+                    disabled={deletingId === item.id}
+                    className={`px-3 py-1 rounded text-white ${
+                      deletingId === item.id ? "bg-gray-400" : "bg-red-600 hover:bg-red-700"
+                    }`}
+                  >
+                    {deletingId === item.id ? "Deleting..." : "Delete"}
                   </button>
                 </td>
               </tr>
