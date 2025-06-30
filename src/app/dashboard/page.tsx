@@ -6,7 +6,16 @@ import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
 import AddTankForm from "@/components/AddTankForm";
 import TankCardClient from "@/components/TankCardClient";   // ➡️ new
 import pool from "@/lib/db";
+import LogoutButton from "@/components/LogoutButton";
 import type { Role } from "@/lib/auth";                     // (reuse Role type)
+
+type Tank = {
+  id: number;
+  name: string;
+  gallons: number;
+  water_type: string;
+  public_id: string;
+};
 
 // ───────────────────────────────────────────────────────────
 export default async function DashboardPage() {
@@ -40,22 +49,15 @@ export default async function DashboardPage() {
             <h1 className="text-3xl font-bold">Dashboard</h1>
             <p className="text-gray-600">
               Welcome back,{" "}
-              <span className="font-semibold">
-                {user.name || user.email}
-              </span>
-              <span className="ml-1 italic text-gray-500">
-                ({user.role})
-              </span>
+              <span className="font-semibold">{user.name || user.email}</span>
+              <span className="ml-1 italic text-gray-500">({user.role})</span>
             </p>
           </div>
 
           <div className="flex gap-2">
             <AddTankForm userId={String(user.id)} />
-            <form action="/api/logout" method="POST">
-              <button className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition">
-                Logout
-              </button>
-            </form>
+            {/* Replace the form with the LogoutButton component */}
+            <LogoutButton />
           </div>
         </header>
 
@@ -66,7 +68,7 @@ export default async function DashboardPage() {
           </p>
         ) : (
           <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {tanks.map((t) => (
+            {tanks.map((t: Tank) => (
               <TankCardClient key={t.id} tank={t} />
             ))}
           </ul>
