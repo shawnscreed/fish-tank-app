@@ -17,10 +17,11 @@ export async function GET(
 
   try {
     // 1. Get tank water_type
-    const tankResult = await pool.query(
-      `SELECT water_type FROM "Tank" WHERE id = $1`,
-      [tankId]
-    );
+   const tankResult = await pool.query(
+  `SELECT water_type FROM public."Tank" WHERE id = $1`,
+  [tankId]
+);
+
 
     if (tankResult.rows.length === 0) {
       return NextResponse.json({ error: "Tank not found" }, { status: 404 });
