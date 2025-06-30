@@ -92,10 +92,13 @@ export default function TankDetail({
       const filterByWaterType = (list: any[]) =>
         list.filter((i) => wt === "brackish" || i.water_type === wt);
 
-      setAvailableFish(fishList.ok ? filterByWaterType(await fishList.json()) : []);
-      setAvailablePlants(plantList.ok ? filterByWaterType(await plantList.json()) : []);
-      setAvailableInverts(invertList.ok ? filterByWaterType(await invertList.json()) : []);
-      setAvailableCorals(coralList.ok ? filterByWaterType(await coralList.json()) : []);
+  const sortByName = (arr: any[]) =>
+  arr.sort((a, b) => a.name.localeCompare(b.name)); 
+
+  setAvailableFish(fishList.ok ? sortByName(filterByWaterType(await fishList.json())) : []);
+setAvailablePlants(plantList.ok ? sortByName(filterByWaterType(await plantList.json())) : []);
+setAvailableInverts(invertList.ok ? sortByName(filterByWaterType(await invertList.json())) : []);
+setAvailableCorals(coralList.ok ? sortByName(filterByWaterType(await coralList.json())) : []);
     } catch (err) {
       console.error("Failed to load tank data:", err);
     } finally {
@@ -162,7 +165,7 @@ export default function TankDetail({
 
   const typeToRoute: Record<string, string> = {
     fish: "/api/tankfish",
-    plants: "/api/tankplants",
+    plants: "/api/tankplant",
     inverts: "/api/tankinverts",
     corals: "/api/tankcoral",
   };
