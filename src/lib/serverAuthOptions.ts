@@ -48,23 +48,26 @@ export const authOptions: AuthOptions = {
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider === "google") {
-        // Case-insensitive lookup for user email
+        // Query user by email
         const result = await pool.query(
-          `SELECT * FROM "User" WHERE LOWER(email) = LOWER($1)`,
+          `SELECT * FROM "User" WHERE email = $1`,
           [user.email]
         );
 
-        if (result.rows.length > 0) {
-          // User exists, allow login
-          return true;
-        } else {
-          // User not found - reject sign-in to avoid creating new users accidentally
+        if (result.rows.length === 0) {
+          // User does not exist, reject login
           return false;
-          
-          // Or if you want to auto-create user here, add that logic instead
         }
+
+        // Attach full user info (including role) to the user object
+        const dbUser = result.rows[0];
+        user.id = dbUser.id.toString();
+        user.role = dbUser.role;
+        user.name = dbUser.name ?? user.name;
+
+        return true; // Allow login
       }
-      // For other providers, allow sign in as usual
+      // Allow login for other providers as usual
       return true;
     },
 
