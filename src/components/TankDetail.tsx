@@ -190,11 +190,9 @@ export default function TankDetail({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: rowId }),
     });
-
     loadTankDetails();
   };
 
- 
   const typeLabels: Record<string, string> = {
     fish: "fish",
     plants: "plant",
