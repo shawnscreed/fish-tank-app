@@ -33,7 +33,9 @@ export default function ClientLayout({ children, user }: ClientLayoutProps) {
   const adminPages: MenuItem[] =
     user.role === "admin" || user.role === "super_admin"
       ? [
-          { name: "Fish", href: "/fish" },
+          { name: "wishlist", href: "/dashboard/wishlist" },
+{ name: "stocking suggestions", href: "/dashboard/stocking-suggestions" },
+        { name: "Fish", href: "/fish" },
           { name: "Plant", href: "/plant" },
           { name: "Inverts", href: "/inverts" },
           { name: "Coral", href: "/coral" },

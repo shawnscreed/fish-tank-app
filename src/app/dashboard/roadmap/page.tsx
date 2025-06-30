@@ -54,6 +54,7 @@ export default function RoadmapPage() {
               <li>✅ Saltwater & Brackish tank support</li>
               <li>✅ Coral support</li>
               <li>✅ Google OAuth fix</li>
+              <li>✅ WishList</li>
               <li>🧠 Stocking Suggestions</li>
               <li>🖰 Printable Reports</li>
               <li>✅ 🔍 Compatibility Checker- needs more data on back end.</li>
