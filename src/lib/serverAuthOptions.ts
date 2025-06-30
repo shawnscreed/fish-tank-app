@@ -45,6 +45,27 @@ export const authOptions: AuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || "",
 
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === "google") {
+        // Check if user exists in DB by email
+        const result = await pool.query(
+          `SELECT * FROM "User" WHERE email = $1`,
+          [user.email]
+        );
+
+        if (result.rows.length > 0) {
+          // User exists, allow login
+          return true;
+        } else {
+          // User not found, optionally create a new user or reject
+          // For now allow sign in (but you might want to handle this differently)
+          return true;
+        }
+      }
+      // For other providers, allow sign in as usual
+      return true;
+    },
+
     async jwt({ token, user }) {
       if (user) {
         token.id = String(user.id);
