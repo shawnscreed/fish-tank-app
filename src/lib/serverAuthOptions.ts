@@ -3,7 +3,7 @@ import { AuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 import pool from "@/lib/db";
-import bcrypt from "bcryptjs"; // ✅ moved to top-level scope
+import bcrypt from "bcryptjs";
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -21,7 +21,7 @@ export const authOptions: AuthOptions = {
         if (!credentials) return null;
 
         const result = await pool.query(
-          `SELECT * FROM "User" WHERE email = $1`,
+          `SELECT * FROM "User" WHERE LOWER(email) = LOWER($1)`,
           [credentials.email]
         );
 
@@ -41,15 +41,16 @@ export const authOptions: AuthOptions = {
       },
     }),
   ],
+
   session: { strategy: "jwt" },
   secret: process.env.NEXTAUTH_SECRET || "",
 
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider === "google") {
-        // Check if user exists in DB by email
+        // Case-insensitive lookup for user email
         const result = await pool.query(
-          `SELECT * FROM "User" WHERE email = $1`,
+          `SELECT * FROM "User" WHERE LOWER(email) = LOWER($1)`,
           [user.email]
         );
 
@@ -57,9 +58,10 @@ export const authOptions: AuthOptions = {
           // User exists, allow login
           return true;
         } else {
-          // User not found, optionally create a new user or reject
-          // For now allow sign in (but you might want to handle this differently)
-          return true;
+          // User not found - reject sign-in to avoid creating new users accidentally
+          return false;
+          
+          // Or if you want to auto-create user here, add that logic instead
         }
       }
       // For other providers, allow sign in as usual
@@ -75,6 +77,7 @@ export const authOptions: AuthOptions = {
       }
       return token;
     },
+
     async session({ session, token }) {
       if (session.user) {
         session.user.id = parseInt(token.id as string, 10);
@@ -85,6 +88,7 @@ export const authOptions: AuthOptions = {
       return session;
     },
   },
+
   pages: {
     signIn: "/login",
   },
