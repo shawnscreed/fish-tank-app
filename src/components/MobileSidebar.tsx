@@ -28,8 +28,7 @@ export default function MobileSidebar({ user }: { user: JWTUser }) {
   ];
 
   const adminPages: MenuItem[] = [
-    { name: "wishlist", href: "/dashboard/wishlist" },
-{ name: "stocking suggestions", href: "/dashboard/stocking-suggestions" },
+    
 { name: "Fish", href: "/fish" },
     { name: "Plant", href: "/plant" },
     { name: "Inverts", href: "/inverts" },

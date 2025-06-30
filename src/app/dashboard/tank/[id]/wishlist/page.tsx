@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import ClientLayoutWrapper from "@/components/ClientLayoutWrapper";
+import MainContainer from "@/components/MainContainer";
+import { useSession } from "next-auth/react";
+import type { JWTUser, Role } from "@/lib/auth";
 
 type WishlistItem = {
   id: number;
@@ -14,12 +18,21 @@ type WishlistItem = {
 
 export default function TankWishlistPage() {
   const { id: tankId } = useParams();
+  const { data: session, status } = useSession();
+
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [addingId, setAddingId] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    if (status === "loading") return;
+    if (!session) {
+      setMessage("You must be logged in to view the wishlist.");
+      setLoading(false);
+      return;
+    }
+
     async function fetchWishlist() {
       setLoading(true);
       setMessage(null);
@@ -37,9 +50,14 @@ export default function TankWishlistPage() {
       }
     }
     fetchWishlist();
-  }, [tankId]);
+  }, [tankId, session, status]);
 
   const addToTank = async (wishlistItemId: number) => {
+    if (!session) {
+      setMessage("You must be logged in to add species.");
+      return;
+    }
+
     setAddingId(wishlistItemId);
     setMessage(null);
 
@@ -86,52 +104,99 @@ export default function TankWishlistPage() {
     }
   };
 
-  if (loading) return <p>Loading wishlist...</p>;
+  // Provide user info for layout
+  const userForLayout: JWTUser = session?.user
+    ? {
+        id: Number(session.user.id),
+        email: session.user.email ?? "",
+        role: (session.user.role ?? "user") as Role,
+        name: session.user.name ?? undefined,
+      }
+    : {
+        id: 0,
+        email: "",
+        role: "user",
+      };
 
-  if (wishlist.length === 0)
+  if (status === "loading") {
     return (
-      <div>
-        <p>No wishlist items yet.</p>
-        {message && <p className="text-red-600 mt-2">{message}</p>}
-      </div>
+      <ClientLayoutWrapper user={userForLayout}>
+        <MainContainer>
+          <p>Loading session...</p>
+        </MainContainer>
+      </ClientLayoutWrapper>
     );
+  }
+
+  if (!session) {
+    return (
+      <ClientLayoutWrapper user={userForLayout}>
+        <MainContainer>
+          <p className="text-red-600">You must be logged in to view this page.</p>
+        </MainContainer>
+      </ClientLayoutWrapper>
+    );
+  }
+
+  if (loading) {
+    return (
+      <ClientLayoutWrapper user={userForLayout}>
+        <MainContainer>
+          <p>Loading wishlist...</p>
+        </MainContainer>
+      </ClientLayoutWrapper>
+    );
+  }
+
+  if (wishlist.length === 0) {
+    return (
+      <ClientLayoutWrapper user={userForLayout}>
+        <MainContainer>
+          <p>No wishlist items yet.</p>
+          {message && <p className="text-red-600 mt-2">{message}</p>}
+        </MainContainer>
+      </ClientLayoutWrapper>
+    );
+  }
 
   return (
-    <div className="p-4 max-w-4xl mx-auto space-y-6">
-      {message && <p className="text-green-600 font-semibold">{message}</p>}
+    <ClientLayoutWrapper user={userForLayout}>
+      <MainContainer>
+        {message && <p className="text-green-600 font-semibold mb-4">{message}</p>}
 
-      <table className="w-full border text-sm">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="border px-2 py-1">Name</th>
-            <th className="border px-2 py-1">Type</th>
-            <th className="border px-2 py-1">Added On</th>
-            <th className="border px-2 py-1">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {wishlist.map((item) => (
-            <tr key={item.id}>
-              <td className="border px-2 py-1">{item.name}</td>
-              <td className="border px-2 py-1 capitalize">{item.species_type}</td>
-              <td className="border px-2 py-1">
-                {new Date(item.created_at).toLocaleDateString()}
-              </td>
-              <td className="border px-2 py-1 text-center">
-                <button
-                  onClick={() => addToTank(item.id)}
-                  disabled={addingId === item.id}
-                  className={`px-3 py-1 rounded text-white ${
-                    addingId === item.id ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
-                  }`}
-                >
-                  {addingId === item.id ? "Adding..." : "Add to Tank"}
-                </button>
-              </td>
+        <table className="w-full border text-sm">
+          <thead>
+            <tr className="bg-gray-100">
+              <th className="border px-2 py-1">Name</th>
+              <th className="border px-2 py-1">Type</th>
+              <th className="border px-2 py-1">Added On</th>
+              <th className="border px-2 py-1">Action</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {wishlist.map((item) => (
+              <tr key={item.id}>
+                <td className="border px-2 py-1">{item.name}</td>
+                <td className="border px-2 py-1 capitalize">{item.species_type}</td>
+                <td className="border px-2 py-1">
+                  {new Date(item.created_at).toLocaleDateString()}
+                </td>
+                <td className="border px-2 py-1 text-center">
+                  <button
+                    onClick={() => addToTank(item.id)}
+                    disabled={addingId === item.id}
+                    className={`px-3 py-1 rounded text-white ${
+                      addingId === item.id ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
+                    }`}
+                  >
+                    {addingId === item.id ? "Adding..." : "Add to Tank"}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </MainContainer>
+    </ClientLayoutWrapper>
   );
 }
