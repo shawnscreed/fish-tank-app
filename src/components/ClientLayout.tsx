@@ -26,6 +26,7 @@ export default function ClientLayout({ children, user }: ClientLayoutProps) {
     { name: "Dashboard", href: "/dashboard" },
     { name: "Products", href: "/dashboard/products" },
     { name: "Compatibility", href: "/dashboard/compatibility" },
+     { name: "Development Roadmap", href: "/dashboard/roadmap" },
     { name: "Feedback", href: "/dashboard/feedback" },
   ];
 
