@@ -52,52 +52,56 @@ export async function GET(
     const stockedCoralIds = coralResult.rows.map((r) => r.coral_id);
 
     // 3. Query compatible fish not already in tank
-    const fishQuery = await pool.query(
-      `
-      SELECT * FROM public."Fish"
-      WHERE (water_type = $1 OR $1 = 'brackish')
-      AND id != ALL($2::int[])
-      ORDER BY name
-      `,
-      [waterType, safeArray(stockedFishIds)]
-    );
+const fishQuery = await pool.query(
+  `
+  SELECT * FROM "Fish"
+  WHERE (water_type = $1 OR $1 = 'brackish')
+  AND id != ALL($2::int[])
+  AND (in_use IS NULL OR in_use = true)
+  ORDER BY name
+  `,
+  [waterType, safeArray(stockedFishIds)]
+);
 
     // 4. Query compatible plants not already in tank
-    const plantQuery = await pool.query(
-      `
-      SELECT * FROM public."Plant"
-      WHERE (water_type = $1 OR $1 = 'brackish')
-      AND id != ALL($2::int[])
-      ORDER BY name
-      `,
-      [waterType, safeArray(stockedPlantIds)]
-    );
+ const plantQuery = await pool.query(
+  `
+  SELECT * FROM "Plant"
+  WHERE (water_type = $1 OR $1 = 'brackish')
+  AND id != ALL($2::int[])
+  AND (in_use IS NULL OR in_use = true)
+  ORDER BY name
+  `,
+  [waterType, safeArray(stockedPlantIds)]
+);
 
     // 5. Query compatible inverts not already in tank
-    const invertQuery = await pool.query(
-      `
-      SELECT * FROM public."Invert"
-      WHERE (water_type = $1 OR $1 = 'brackish')
-      AND id != ALL($2::int[])
-      ORDER BY name
-      `,
-      [waterType, safeArray(stockedInvertIds)]
-    );
+const invertQuery = await pool.query(
+  `
+  SELECT * FROM "Invert"
+  WHERE (water_type = $1 OR $1 = 'brackish')
+  AND id != ALL($2::int[])
+  -- No in_use column? Skip filter
+  ORDER BY name
+  `,
+  [waterType, safeArray(stockedInvertIds)]
+);
 
     // 6. Query compatible corals (only for salt or brackish) not in tank
-    let coralRows = [];
-    if (waterType === "salt" || waterType === "brackish") {
-      const coralQuery = await pool.query(
-        `
-        SELECT * FROM public."Coral"
-        WHERE (water_type = $1 OR $1 = 'brackish')
-        AND id != ALL($2::int[])
-        ORDER BY name
-        `,
-        [waterType, safeArray(stockedCoralIds)]
-      );
-      coralRows = coralQuery.rows;
-    }
+ let coralRows = [];
+if (waterType === "salt" || waterType === "brackish") {
+  const coralQuery = await pool.query(
+    `
+    SELECT * FROM "Coral"
+    WHERE (water_type = $1 OR $1 = 'brackish')
+    AND id != ALL($2::int[])
+    -- Add in_use filter if applicable
+    ORDER BY name
+    `,
+    [waterType, safeArray(stockedCoralIds)]
+  );
+  coralRows = coralQuery.rows;
+}
 
     // 7. Combine all results into one array with type field
     const suggestions = [
