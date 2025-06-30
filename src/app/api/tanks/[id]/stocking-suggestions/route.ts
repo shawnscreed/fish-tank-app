@@ -17,11 +17,10 @@ export async function GET(
 
   try {
     // 1. Get tank water_type
-   const tankResult = await pool.query(
-  `SELECT water_type FROM public."Tank" WHERE id = $1`,
-  [tankId]
-);
-
+    const tankResult = await pool.query(
+      `SELECT water_type FROM public."Tank" WHERE id = $1`,
+      [tankId]
+    );
 
     if (tankResult.rows.length === 0) {
       return NextResponse.json({ error: "Tank not found" }, { status: 404 });
@@ -31,19 +30,19 @@ export async function GET(
 
     // 2. Get IDs of all species currently assigned to the tank
     const fishResult = await pool.query(
-      `SELECT fish_id FROM "TankFish" WHERE tank_id = $1`,
+      `SELECT fish_id FROM public."TankFish" WHERE tank_id = $1`,
       [tankId]
     );
     const plantResult = await pool.query(
-      `SELECT plant_id FROM "TankPlant" WHERE tank_id = $1`,
+      `SELECT plant_id FROM public."TankPlant" WHERE tank_id = $1`,
       [tankId]
     );
     const invertResult = await pool.query(
-      `SELECT invert_id FROM "TankInvert" WHERE tank_id = $1`,
+      `SELECT invert_id FROM public."TankInvert" WHERE tank_id = $1`,
       [tankId]
     );
     const coralResult = await pool.query(
-      `SELECT coral_id FROM "TankCoral" WHERE tank_id = $1`,
+      `SELECT coral_id FROM public."TankCoral" WHERE tank_id = $1`,
       [tankId]
     );
 
@@ -55,7 +54,7 @@ export async function GET(
     // 3. Query compatible fish not already in tank
     const fishQuery = await pool.query(
       `
-      SELECT * FROM "Fish"
+      SELECT * FROM public."Fish"
       WHERE (water_type = $1 OR $1 = 'brackish')
       AND id != ALL($2::int[])
       ORDER BY name
@@ -66,7 +65,7 @@ export async function GET(
     // 4. Query compatible plants not already in tank
     const plantQuery = await pool.query(
       `
-      SELECT * FROM "Plant"
+      SELECT * FROM public."Plant"
       WHERE (water_type = $1 OR $1 = 'brackish')
       AND id != ALL($2::int[])
       ORDER BY name
@@ -77,7 +76,7 @@ export async function GET(
     // 5. Query compatible inverts not already in tank
     const invertQuery = await pool.query(
       `
-      SELECT * FROM "Invert"
+      SELECT * FROM public."Invert"
       WHERE (water_type = $1 OR $1 = 'brackish')
       AND id != ALL($2::int[])
       ORDER BY name
@@ -90,7 +89,7 @@ export async function GET(
     if (waterType === "salt" || waterType === "brackish") {
       const coralQuery = await pool.query(
         `
-        SELECT * FROM "Coral"
+        SELECT * FROM public."Coral"
         WHERE (water_type = $1 OR $1 = 'brackish')
         AND id != ALL($2::int[])
         ORDER BY name
