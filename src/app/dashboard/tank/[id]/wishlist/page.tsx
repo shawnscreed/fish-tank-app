@@ -115,9 +115,7 @@ export default function TankWishlistPage() {
     setMessage(null);
 
     try {
-      const res = await fetch(`/api/tankwishlist/${wishlistItemId}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(`/api/tankwishlist/item/${wishlistItemId}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete wishlist item");
 
       setMessage("Deleted from wishlist.");
