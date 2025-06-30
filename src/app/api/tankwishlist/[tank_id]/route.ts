@@ -28,7 +28,8 @@ export async function GET(
     if (ownerCheck.rows.length === 0) {
       return NextResponse.json({ error: "Tank not found" }, { status: 404 });
     }
-    if (ownerCheck.rows[0].user_id !== user.id) {
+    // Convert both to strings before comparing
+    if (String(ownerCheck.rows[0].user_id) !== String(user.id)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -72,8 +73,8 @@ export async function DELETE(
     if (ownershipCheck.rows.length === 0) {
       return NextResponse.json({ error: "Wishlist item not found" }, { status: 404 });
     }
-
-    if (ownershipCheck.rows[0].user_id !== user.id) {
+    // Convert both to strings before comparing
+    if (String(ownershipCheck.rows[0].user_id) !== String(user.id)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
