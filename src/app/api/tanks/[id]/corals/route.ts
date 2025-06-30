@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
-// GET: fetch corals assigned to this tank
+// ✅ GET: fetch corals assigned to this tank (include assignment_id)
 export async function GET(
   _req: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -13,9 +13,11 @@ export async function GET(
 
   try {
     const result = await pool.query(
-      `SELECT c.* FROM "TankCoral" tc
+      `SELECT tc.id AS assignment_id, c.*
+       FROM "TankCoral" tc
        JOIN "Coral" c ON c.id = tc.coral_id
-       WHERE tc.tank_id = $1`,
+       WHERE tc.tank_id = $1
+       ORDER BY c.name`,
       [tankId]
     );
 
@@ -26,7 +28,7 @@ export async function GET(
   }
 }
 
-// POST: assign coral to tank
+// ✅ POST: assign coral to tank
 export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -50,20 +52,20 @@ export async function POST(
   }
 }
 
-// DELETE: remove coral from tank
+// ✅ DELETE: remove coral using assignment_id
 export async function DELETE(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params;
-  const tankId = parseInt(id);
-  const { coral_id } = await req.json();
+  const { coral_id } = await req.json(); // from POST-style deletion
+
+  // fallback: use `id` as primary key (assignment_id)
+  const id = coral_id ?? (await req.json()).id;
 
   try {
     await pool.query(
-      `DELETE FROM "TankCoral"
-       WHERE tank_id = $1 AND coral_id = $2`,
-      [tankId, coral_id]
+      `DELETE FROM "TankCoral" WHERE id = $1`,
+      [id]
     );
 
     return NextResponse.json({ success: true });

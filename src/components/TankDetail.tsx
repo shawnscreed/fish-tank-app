@@ -1,4 +1,4 @@
-// 📄 Page: /dashboard/tank/[id]
+// 📄 Page: /components/TankDetail.tsx
 
 "use client";
 
