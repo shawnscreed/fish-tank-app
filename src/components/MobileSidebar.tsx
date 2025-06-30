@@ -20,6 +20,7 @@ export default function MobileSidebar({ user }: { user: JWTUser }) {
     { name: "Dashboard", href: "/dashboard" },
     { name: "Products", href: "/dashboard/products" },
     { name: "Compatibility", href: "/dashboard/compatibility" },
+     { name: "Development Roadmap", href: "/dashboard/roadmap" },
     { name: "Feedback", href: "/dashboard/feedback" },
   ];
 
