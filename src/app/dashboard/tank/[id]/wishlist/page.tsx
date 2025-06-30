@@ -181,7 +181,7 @@ export default function TankWishlistPage() {
                 <td className="border px-2 py-1">
                   {new Date(item.created_at).toLocaleDateString()}
                 </td>
-                <td className="border px-2 py-1 text-center">
+                <td className="border px-2 py-1 text-center space-x-2">
                   <button
                     onClick={() => addToTank(item.id)}
                     disabled={addingId === item.id}
