@@ -33,8 +33,19 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // Query wishlist with species name included
     const result = await pool.query(
-      `SELECT * FROM "TankWishlist" WHERE tank_id = $1 ORDER BY created_at DESC`,
+      `
+      SELECT tw.*,
+        COALESCE(f.name, p.name, i.name, c.name) AS name
+      FROM "TankWishlist" tw
+      LEFT JOIN "Fish" f ON tw.species_type = 'fish' AND tw.species_id = f.id
+      LEFT JOIN "Plant" p ON tw.species_type = 'plant' AND tw.species_id = p.id
+      LEFT JOIN "Invert" i ON tw.species_type = 'invert' AND tw.species_id = i.id
+      LEFT JOIN "Coral" c ON tw.species_type = 'coral' AND tw.species_id = c.id
+      WHERE tw.tank_id = $1
+      ORDER BY tw.created_at DESC
+      `,
       [tankId]
     );
 
@@ -45,6 +56,7 @@ export async function GET(
   }
 }
 
+// DELETE handler remains unchanged
 export async function DELETE(
   req: NextRequest,
   context: { params: Promise<{ wishlist_id: string }> }
