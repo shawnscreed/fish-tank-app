@@ -1,9 +1,7 @@
-// 📄 File: src/app/api/tankcoral/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
-// ✅ POST - Assign a coral to a tank
+// ✅ POST - Assign coral to tank
 export async function POST(req: NextRequest) {
   try {
     const { tank_id, coral_id } = await req.json();
@@ -27,7 +25,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// ✅ DELETE - Remove a coral assignment by ID
+// ✅ DELETE - Remove coral from tank
 export async function DELETE(req: NextRequest) {
   try {
     const { id } = await req.json();
@@ -37,7 +35,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     const result = await pool.query(
-      'DELETE FROM "TankCoral" WHERE id = $1 RETURNING *',
+      `DELETE FROM "TankCoral" WHERE id = $1 RETURNING *`,
       [id]
     );
 
