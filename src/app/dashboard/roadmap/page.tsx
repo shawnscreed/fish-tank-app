@@ -55,9 +55,8 @@ export default function RoadmapPage() {
               <li>✅ Coral support</li>
               <li>✅ Google OAuth fix</li>
               <li>✅ WishList</li>
-              <li>🧠 Stocking Suggestions</li>
-              <li>🖰 Printable Reports</li>
-              <li>✅ 🔍 Compatibility Checker- needs more data on back end.</li>
+              <li>✅ 🧠 Stocking Suggestions</li>
+             <li>✅ 🔍 Compatibility Checker- needs more data on back end.</li>
               <li>✅ 🏷 QR Tank Labels</li>
               <li>✅ 🧾 Water Test Logging & Timeline</li>
               <li>✅ 🖊️ Maintenance Logs</li>
@@ -76,10 +75,9 @@ export default function RoadmapPage() {
               <li>✅ Maintenance Reminders</li>
               <li>✅ Advanced Timeline filtering</li>
               <li>✅ Water Parameter Alert Notifications</li>
-              <li>Premium Stocking Suggestions</li>
-              <li>Referral-based Role Levels</li>
-              <li>Subscription Management</li>
-              <li>📸 Photo Journal for tanks</li>
+              <li>✅ Premium Stocking Suggestions</li>
+              <li>✅ Referral-based Role Levels</li>
+              
             </ul>
           </section>
 
@@ -99,6 +97,9 @@ export default function RoadmapPage() {
               <li>Voice-to-Text Logging (mobile)</li>
               <li>Offline Mode (mobile)</li>
               <li>Client Satisfaction Tracking</li>
+               <li>🖰 Printable Reports</li>
+               <li>Subscription Management</li>
+              <li>📸 Photo Journal for tanks</li>
             </ul>
           </section>
 

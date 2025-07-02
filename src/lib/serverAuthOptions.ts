@@ -46,7 +46,7 @@ export const authOptions: AuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || "",
 
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user, account, profile }) {
       if (account?.provider === "google") {
         // Query user by email
         const result = await pool.query(
@@ -54,13 +54,19 @@ export const authOptions: AuthOptions = {
           [user.email]
         );
 
+        let dbUser;
         if (result.rows.length === 0) {
-          // User does not exist, reject login
-          return false;
+          // User does not exist: create a new one!
+          const insertResult = await pool.query(
+            `INSERT INTO "User" (email, name, role) VALUES ($1, $2, $3) RETURNING *`,
+            [user.email, user.name || (profile && profile.name) || "", "user"]
+          );
+          dbUser = insertResult.rows[0];
+        } else {
+          dbUser = result.rows[0];
         }
 
         // Attach full user info (including role) to the user object
-        const dbUser = result.rows[0];
         user.id = dbUser.id.toString();
         user.role = dbUser.role;
         user.name = dbUser.name ?? user.name;
